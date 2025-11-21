@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
-import { Search, List, Map as MapIcon, Filter, Activity, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, List, Map as MapIcon, Activity, MapPin } from 'lucide-react';
 import GoogleMap from '../components/Map/GoogleMap';
 import Modal from '../components/Utils/Modal';
 
 const MapScreen = ({ units, setSelectedUnit, setView }) => {
   const [mapViewMode, setMapViewMode] = useState('map'); // map, list
   const [showMapFiltersMobile, setShowMapFiltersMobile] = useState(false);
+  
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [mapFilters, setMapFilters] = useState({ types: [], urgency: false, open24h: false, searchTerm: '' });
+
+  const [filteredResults, setFilteredResults] = useState(units);
+
+  useEffect(() => {
+    const delayInput = setTimeout(() => {
+      setMapFilters(prev => ({ ...prev, searchTerm: localSearchTerm }));
+    }, 500); 
+
+    return () => clearTimeout(delayInput); 
+  }, [localSearchTerm]);
 
   const toggleMapFilterType = (type) => {
     setMapFilters(prev => {
@@ -17,15 +29,28 @@ const MapScreen = ({ units, setSelectedUnit, setView }) => {
     });
   };
 
-  const filteredUnitsList = units.filter(u => {
-    const matchesType = mapFilters.types.length === 0 || mapFilters.types.includes(u.type);
-    const matchesUrgency = !mapFilters.urgency || u.urgency;
-    const matches24h = !mapFilters.open24h || u.open24h;
-    const matchesSearch = u.name.toLowerCase().includes(mapFilters.searchTerm.toLowerCase()) || u.bairro.toLowerCase().includes(mapFilters.searchTerm.toLowerCase());
-    return matchesType && matchesUrgency && matches24h && matchesSearch;
-  });
+  const toggleUrgency = () => setMapFilters(prev => ({ ...prev, urgency: !prev.urgency }));
+  const toggleOpen24h = () => setMapFilters(prev => ({ ...prev, open24h: !prev.open24h }));
 
-  const FilterContent = () => (
+  useEffect(() => {
+    const results = units.filter(u => {
+      const matchesType = mapFilters.types.length === 0 || mapFilters.types.includes(u.type);
+      const matchesUrgency = !mapFilters.urgency || u.urgency;
+      const matches24h = !mapFilters.open24h || u.open24h;
+      
+      const searchLower = mapFilters.searchTerm.toLowerCase();
+      const name = (u.name || '').toLowerCase();
+      const bairro = (u.bairro || '').toLowerCase();
+      const matchesSearch = name.includes(searchLower) || bairro.includes(searchLower);
+      
+      return matchesType && matchesUrgency && matches24h && matchesSearch;
+    });
+    setFilteredResults(results);
+    
+
+  }, [mapFilters, units]);
+
+  const filterJsx = (
     <div className="space-y-4">
       <div>
         <label className="text-sm font-bold text-gray-700 mb-1 block">Pesquisar</label>
@@ -33,9 +58,13 @@ const MapScreen = ({ units, setSelectedUnit, setView }) => {
           type="text" 
           placeholder="Nome ou Bairro..." 
           className="w-full border rounded p-2 text-sm"
-          value={mapFilters.searchTerm}
-          onChange={(e) => setMapFilters({...mapFilters, searchTerm: e.target.value})}
+          value={localSearchTerm} 
+          onChange={(e) => setLocalSearchTerm(e.target.value)}
+          autoFocus 
         />
+        <p className="text-xs text-gray-400 mt-1 italic h-4">
+           {localSearchTerm !== mapFilters.searchTerm ? "Filtrando..." : " "}
+        </p>
       </div>
       <div>
         <label className="text-sm font-bold text-gray-700 mb-1 block">Tipo de Unidade</label>
@@ -58,14 +87,14 @@ const MapScreen = ({ units, setSelectedUnit, setView }) => {
           <input 
             type="checkbox" 
             checked={mapFilters.urgency} 
-            onChange={() => setMapFilters({...mapFilters, urgency: !mapFilters.urgency})}
+            onChange={toggleUrgency}
           /> Urgência/Emergência
         </label>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input 
             type="checkbox" 
             checked={mapFilters.open24h} 
-            onChange={() => setMapFilters({...mapFilters, open24h: !mapFilters.open24h})}
+            onChange={toggleOpen24h}
           /> Aberto 24h
         </label>
       </div>
@@ -85,16 +114,17 @@ const MapScreen = ({ units, setSelectedUnit, setView }) => {
       <div className="hidden md:flex flex-col w-80 bg-white border-r border-gray-200 shadow-md z-10">
         <div className="p-4 border-b bg-gray-50">
           <h2 className="font-bold text-gray-800 mb-2">Filtros Rápidos</h2>
-          <FilterContent />
+          {filterJsx}
         </div>
         {mapViewMode === 'list' && (
           <div className="flex-1 overflow-y-auto p-2 space-y-2">
-            {filteredUnitsList.map(u => (
+            {filteredResults.map(u => (
               <div key={u.id} onClick={() => { setSelectedUnit(u); setView('details'); }} className="p-3 border rounded hover:bg-emerald-50 cursor-pointer transition-colors">
                 <h4 className="font-bold text-emerald-700">{u.name}</h4>
                 <p className="text-xs text-gray-600">{u.bairro} • {u.type}</p>
               </div>
             ))}
+            {filteredResults.length === 0 && <p className="text-center text-gray-400 p-4">Nenhuma unidade encontrada.</p>}
           </div>
         )}
       </div>
@@ -103,7 +133,7 @@ const MapScreen = ({ units, setSelectedUnit, setView }) => {
       <div className="flex-1 relative">
         {mapViewMode === 'map' ? (
           <GoogleMap 
-            units={units} 
+            units={filteredResults} 
             filters={mapFilters}
             onMarkerClick={(u) => { setSelectedUnit(u); setView('details'); }}
           />
@@ -111,13 +141,14 @@ const MapScreen = ({ units, setSelectedUnit, setView }) => {
           <div className="p-4 overflow-y-auto h-full bg-gray-100">
             <h2 className="text-lg font-bold mb-4 md:hidden">Lista de Unidades</h2>
             <div className="grid gap-4 md:hidden">
-              {filteredUnitsList.map(u => (
+              {filteredResults.map(u => (
                 <div key={u.id} onClick={() => { setSelectedUnit(u); setView('details'); }} className="bg-white p-4 rounded shadow hover:shadow-md cursor-pointer">
                   <h4 className="font-bold text-emerald-700">{u.name}</h4>
                   <span className="inline-block bg-gray-200 rounded px-2 py-0.5 text-xs mt-1">{u.type}</span>
                   <p className="text-sm text-gray-600 mt-1">{u.bairro}</p>
                 </div>
               ))}
+              {filteredResults.length === 0 && <p className="text-center text-gray-500 mt-4">Nenhum resultado encontrado.</p>}
             </div>
             <div className="hidden md:flex h-full items-center justify-center text-gray-400">
                 Selecione uma unidade na lista lateral.
@@ -143,7 +174,7 @@ const MapScreen = ({ units, setSelectedUnit, setView }) => {
 
         {/* Modal Filtros Mobile */}
         <Modal isOpen={showMapFiltersMobile} onClose={() => setShowMapFiltersMobile(false)} title="Filtros">
-          <FilterContent />
+          {filterJsx}
         </Modal>
 
         {/* Bottom Nav Mobile */}
