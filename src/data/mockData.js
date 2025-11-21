@@ -7,6 +7,7 @@ export const MOCK_UNITS = [
     id: 1,
     name: "UBS Centro Clínico - Dr. José Leão",
     type: "UBS",
+    federativeEntity: "Municipal", 
     bairro: "Centro",
     cep: "59600-000",
     rua: "Rua Dr. João Marcelino",
@@ -22,7 +23,8 @@ export const MOCK_UNITS = [
       { id: 1, title: "Campanha de Vacinação", date: "20/10/2023", content: "Início da campanha contra a gripe para idosos." }
     ],
     services: [
-      { id: 1, name: "Consulta Geral", specialty: "Clínica Geral", doctor: "Dr. Silva", description: "Consulta de rotina.", hours: "Seg-Sex 08:00-12:00" }
+      { id: 1, name: "Consulta Geral", specialty: "Clínica Geral", doctor: "Dr. Silva", description: "Consulta de rotina.", hours: "Seg-Sex 08:00-12:00" },
+      { id: 2, name: "Curativos", specialty: "Enfermagem", doctor: "Enf. Maria", description: "Troca de curativos.", hours: "Seg-Sex 07:00-11:00" }
     ],
     doctors: [
       { id: 1, name: "Dr. Silva", crm: "1234-RN", specialty: "Clínica Geral" }
@@ -35,6 +37,7 @@ export const MOCK_UNITS = [
     id: 2,
     name: "UPA do Alto de São Manoel",
     type: "UPA",
+    federativeEntity: "Municipal", 
     bairro: "Alto de São Manoel",
     cep: "59620-000",
     rua: "Av. Presidente Dutra",
@@ -47,7 +50,9 @@ export const MOCK_UNITS = [
     open24h: true,
     adminId: 99,
     news: [],
-    services: [],
+    services: [
+      { id: 1, name: "Raio-X", specialty: "Radiologia", doctor: "Téc. João", description: "Raio-X de emergência.", hours: "24h" }
+    ],
     doctors: [],
     reviews: []
   },
@@ -55,6 +60,7 @@ export const MOCK_UNITS = [
     id: 3,
     name: "Hospital Regional Tarcísio Maia",
     type: "Hospital",
+    federativeEntity: "Estadual", 
     bairro: "Aeroporto",
     cep: "59607-000",
     rua: "Rua Projetada",
@@ -67,7 +73,9 @@ export const MOCK_UNITS = [
     open24h: true,
     adminId: 99,
     news: [],
-    services: [],
+    services: [
+      { id: 1, name: "Cirurgia Geral", specialty: "Cirurgia", doctor: "Dr. Pedro", description: "Cirurgias de emergência.", hours: "24h" }
+    ],
     doctors: [],
     reviews: []
   }
