@@ -1,16 +1,74 @@
-# React + Vite
+# GeoSaúde Mossoró
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bem-vindo ao repositório oficial do **GeoSaúde Mossoró**, uma plataforma digital inovadora criada para facilitar o acesso da população aos **serviços públicos de saúde** do município.
 
-Currently, two official plugins are available:
+## Sobre o Projeto
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+O **GeoSaúde Mossoró** reúne **usabilidade**, **acessibilidade** e **dados atualizados** para oferecer uma experiência simples e eficiente, tanto para cidadãos quanto para gestores.
 
-## React Compiler
+### Principais Funcionalidades
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* **Mapa Interativo:** visualize UBSs, UPAs e Hospitais com filtros inteligentes.
+* **Busca Avançada:** encontre unidades por especialidade, bairro, tipo de serviço ou ente federativo.
+* **Detalhes Completos:** endereço, contato, equipe médica e horários de atendimento.
+* **Triagem Online (Em breve):** sistema inteligente para recomendação de atendimento.
+* **Painel Administrativo:** área segura para atualização dos dados das unidades.
 
-## Expanding the ESLint configuration
+## Tecnologias Utilizadas
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* **Frontend:** React + Vite
+* **Linguagem:** JavaScript (ES6+)
+* **Estilização:** Tailwind CSS
+* **Ícones:** Lucide React
+* **Mapas:** Google Maps JavaScript API
+
+## Como Rodar o Projeto
+
+### Pré-requisitos
+
+* Node.js (versão **18+**)
+* npm
+
+### Instalação
+
+1. **Clone o repositório:**
+
+   ```bash
+   git clone https://github.com/SEU_USUARIO/geosaude-app.git
+   cd geosaude-app
+   ```
+
+2. **Instale as dependências:**
+
+   ```bash
+   npm install
+   ```
+
+3. **Configure as variáveis de ambiente:**
+   Crie um arquivo **.env** na raiz com sua chave da Google Maps API:
+
+   ```
+   VITE_GOOGLE_MAPS_API_KEY="SUA_CHAVE_AQUI"
+   ```
+
+4. **Inicie o servidor de desenvolvimento:**
+
+   ```bash
+   npm run dev
+   ```
+
+5. Acesse no navegador:
+   [http://localhost:5173](http://localhost:5173)
+
+
+## Equipe Técnica
+
+Projeto desenvolvido pelo **Grupo 1 – Projeto Integrador**:
+
+| Membro                                | Responsabilidade                                              |
+| ------------------------------------- | ------------------------------------------------------------- |
+| **Eduardo Marinho de Paiva**          | Requisitos Não Funcionais, Regras de Negócio, Painel Admin    |
+| **Luiz Henrique Alves Ferreira**      | Requisitos Não Funcionais, Casos de Uso, Mapa e Navegação     |
+| **Vinicius Eduardo Freitas de Sales** | Requisitos Funcionais, Casos de Uso, Detalhes e Refatoração   |
+| **Paulo Sérgio Silva de Medeiros**    | Requisitos Funcionais, Busca Avançada, Performance            |
+| **João Victor Amaral de Souza**       | Identificação de Usuário, Painel Admin de Unidade, Avaliações |
