@@ -13,7 +13,7 @@ const DetailsScreen = ({ selectedUnit, setView, user }) => {
   if (!selectedUnit) return null;
 
   const copyLocation = () => {
-      const text = `${selectedUnit.rua}, ${selectedUnit.bairro}`;
+      const text = `${selectedUnit.name} - ${selectedUnit.rua} - ${selectedUnit.bairro}, ${selectedUnit.cep}`;
       
       try {
         const textArea = document.createElement("textarea");
