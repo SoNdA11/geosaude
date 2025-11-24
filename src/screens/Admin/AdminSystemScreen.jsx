@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import ModalAdminEdit from '../components/ModalAdminEdit';
-import ModalUnitEdit from '../components/ModalUnitEdit';
-import ModalConfirmation from '../components/ModalConfirmation';
-import ModalResetPassword from '../components/ModalResetPassword';
-import ModalSuccess from '../components/ModalSuccess';
+import ModalAdminEdit from '../../components/ModalAdminEdit';
+import ModalUnitEdit from '../../components/ModalUnitEdit';
+import ModalConfirmation from '../../components/ModalConfirmation';
+import ModalResetPassword from '../../components/ModalResetPassword';
+import ModalSuccess from '../../components/ModalSuccess';
 import { MOCK_USERS, MOCK_HISTORY } from '../../data/mockData';
 
 const AdminSystemScreen = ({ units, setSelectedUnit, setView, handleLogout }) => {
