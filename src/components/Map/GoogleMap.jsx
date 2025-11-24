@@ -21,17 +21,38 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
     };
 
     const initMap = () => {
-      if (!mapRef.current) return;
-      const mossoro = { lat: -5.1878, lng: -37.3442 };
-      const newMap = new window.google.maps.Map(mapRef.current, {
+    if (!mapRef.current) return;
+    const mossoro = { lat: -5.1878, lng: -37.3442 };
+    
+    // 1. OBJETO DE ESTILO PARA REMOVER POIs
+    const poiStyle = [
+      {
+        featureType: "poi", // Seleciona todos os Pontos de Interesse (lojas, restaurantes, etc.)
+        elementType: "labels", // Oculta os rótulos e ícones
+        stylers: [
+          { visibility: "off" } 
+        ]
+      },
+      {
+        featureType: "poi.business", // Garante que negócios específicos sejam desativados
+        stylers: [
+            { visibility: "off" }
+        ]
+      }
+    ];
+
+    const newMap = new window.google.maps.Map(mapRef.current, {
         center: mossoro,
         zoom: 13,
         streetViewControl: false,
         mapTypeControl: false,
         fullscreenControl: false,
-      });
-      setMap(newMap);
-    };
+        
+        // 2. APLICAR O ESTILO NO MAPA
+        styles: poiStyle, 
+    });
+    setMap(newMap);
+};
 
     loadGoogleMaps();
   }, []);
