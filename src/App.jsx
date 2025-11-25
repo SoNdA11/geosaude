@@ -17,17 +17,26 @@ import AdminSystemScreen from './screens/Admin/AdminSystemScreen';
 
 
 export default function App() {
-  // Estados de Navegação e Dados Globais
-  const [view, setView] = useState('home'); 
+  // ESTADOS DE NAVEGAÇÃO E DADOS GLOBAIS
+  const [view, setView] = useState('home');
+  const [previousView, setPreviousView] = useState('home'); // NOVO ESTADO PARA RASTREAR O HISTÓRICO
   const [user, setUser] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [units, setUnits] = useState(MOCK_UNITS);
-  
+
   // Login State
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // FUNÇÃO DE NAVEGAÇÃO CENTRALIZADA (SUBSTITUI setView)
+  const navigateTo = (newView) => {
+    // 1. Antes de mudar a view, salva a view atual como a anterior
+    setPreviousView(view);
+    // 2. Define a nova view
+    setView(newView);
+  };
 
   const handleLogin = () => {
     const foundUser = MOCK_USERS.find(u => u.email === loginEmail && u.password === loginPass);
@@ -36,9 +45,9 @@ export default function App() {
       setShowLoginModal(false);
       setLoginError('');
       if (foundUser.role === 'system_admin') {
-        setView('admin_system');
+        navigateTo('admin_system');
       } else if (foundUser.role === 'unit_admin') {
-        setView('admin_unit');
+        navigateTo('admin_unit');
       }
     } else {
       setLoginError('Credenciais inválidas.');
@@ -47,12 +56,12 @@ export default function App() {
 
   const handleLogout = () => {
     setUser(null);
-    setView('home');
+    navigateTo('home');
   };
 
   const renderNavbar = () => (
     <div className="bg-emerald-600 text-white p-4 shadow-lg flex items-center justify-between sticky top-0 z-40">
-      <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
+      <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigateTo('home')}>
         <div className="bg-white p-1 rounded-full">
           <MapPin className="text-emerald-600" size={20} />
         </div>
@@ -73,61 +82,62 @@ export default function App() {
     <div className="font-sans text-gray-800">
       {view !== 'admin_unit' && view !== 'admin_system' && renderNavbar()}
 
-      {view === 'home' && <HomeScreen setView={setView} setShowLoginModal={setShowLoginModal} />}
-      
+      {view === 'home' && <HomeScreen setView={navigateTo} setShowLoginModal={setShowLoginModal} />}
+
       {view === 'map' && (
-        <MapScreen 
-          units={units} 
-          setSelectedUnit={setSelectedUnit} 
-          setView={setView} 
-        />
-      )}
-      
-      {view === 'details' && (
-        <DetailsScreen 
-          selectedUnit={selectedUnit} 
-          setView={setView} 
-          user={user} 
-        />
-      )}
-      
-      {view === 'advanced_search' && (
-        <AdvancedSearchScreen 
-          units={units} 
-          setSelectedUnit={setSelectedUnit} 
-          setView={setView} 
-        />
-      )}
-      
-      {view === 'admin_unit' && (
-        <AdminUnitScreen 
-          user={user} 
-          units={units} 
-          handleLogout={handleLogout} 
-        />
-      )}
-      
-      {view === 'admin_system' && (
-        <AdminSystemScreen 
-          units={units} 
-          setSelectedUnit={setSelectedUnit} 
-          setView={setView} 
-          handleLogout={handleLogout} 
+        <MapScreen
+          units={units}
+          setSelectedUnit={setSelectedUnit}
+          setView={navigateTo} // Passa a função que rastreia o histórico
         />
       )}
 
-      {/* Modal Login Global */}
+      {view === 'details' && (
+        <DetailsScreen
+          selectedUnit={selectedUnit}
+          setView={navigateTo}
+          user={user}
+          previousView={previousView} // PASSANDO A TELA ANTERIOR
+        />
+      )}
+
+      {view === 'advanced_search' && (
+        <AdvancedSearchScreen
+          units={units}
+          setSelectedUnit={setSelectedUnit}
+          setView={navigateTo} // Passa a função que rastreia o histórico
+        />
+      )}
+
+      {view === 'admin_unit' && (
+        <AdminUnitScreen
+          user={user}
+          units={units}
+          handleLogout={handleLogout}
+        />
+      )}
+
+      {view === 'admin_system' && (
+        <AdminSystemScreen
+          units={units}
+          setSelectedUnit={setSelectedUnit}
+          setView={navigateTo} // Passa a função que rastreia o histórico
+          handleLogout={handleLogout}
+        />
+      )}
+
+      {/* Modal Login Global (Mantido) */}
       <Modal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} title="Acesso Restrito">
         <div className="flex flex-col gap-4">
           <div className="bg-red-50 border-l-4 border-red-500 p-3 flex items-start gap-2">
             <Lock className="text-red-500 shrink-0 mt-1" size={16} />
             <p className="text-xs text-red-700">Esta área é protegida. Certifique-se de que possui autorização antes de acessar.</p>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">E-mail</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-emerald-500 outline-none"
               value={loginEmail}
               onChange={e => setLoginEmail(e.target.value)}
@@ -135,8 +145,8 @@ export default function App() {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Senha</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-emerald-500 outline-none"
               value={loginPass}
               onChange={e => setLoginPass(e.target.value)}
@@ -145,7 +155,7 @@ export default function App() {
 
           {loginError && <p className="text-red-500 text-sm text-center">{loginError}</p>}
 
-          <button 
+          <button
             onClick={handleLogin}
             className="w-full bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700 font-medium"
           >
@@ -155,9 +165,9 @@ export default function App() {
       </Modal>
 
       <style>{`
-        .animate-fade-in { animation: fadeIn 0.2s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-      `}</style>
+        .animate-fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+      `}</style>
     </div>
   );
 }
