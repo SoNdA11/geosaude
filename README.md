@@ -6,6 +6,9 @@ Bem-vindo ao repositório oficial do **GeoSaúde Mossoró**, uma plataforma digi
 
 O **GeoSaúde Mossoró** reúne **usabilidade**, **acessibilidade** e **dados atualizados** para oferecer uma experiência simples e eficiente, tanto para cidadãos quanto para gestores.
 
+![Interface GeoSaúde](src/assets/print-tela-inicial.png)
+
+
 ### Principais Funcionalidades
 
 * **Mapa Interativo:** visualize UBSs, UPAs e Hospitais com filtros inteligentes.
