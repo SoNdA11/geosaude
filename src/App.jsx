@@ -14,23 +14,21 @@ import DetailsScreen from './screens/DetailsScreen';
 import AdvancedSearchScreen from './screens/AdvancedSearchScreen';
 import AdminUnitScreen from './screens/Admin/AdminUnitScreen';
 import AdminSystemScreen from './screens/Admin/AdminSystemScreen';
+import TriageScreen from './screens/TriageScreen';
 
 
 export default function App() {
-  // Estados de Navegação e Dados Globais
   const [view, setView] = useState('home');
   const [previousView, setPreviousView] = useState('home');
   const [user, setUser] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [units, setUnits] = useState(MOCK_UNITS);
   
-  // Login State
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Navegação com Histórico Simples
   const navigateTo = (newView) => {
     setPreviousView(view);
     setView(newView);
@@ -62,7 +60,6 @@ export default function App() {
       <div className="w-full px-6 md:px-10">
         <div className="flex justify-between items-center h-16">
           
-          {/* Logo e Marca */}
           <div 
             className="flex items-center gap-3 cursor-pointer group transition-all" 
             onClick={() => navigateTo('home')}
@@ -78,7 +75,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Área do Usuário / Login */}
           {user ? (
             <div className="flex items-center gap-4 pl-6 border-l border-gray-100">
               <div className="hidden md:flex flex-col items-end">
@@ -114,7 +110,6 @@ export default function App() {
     <div className="font-sans text-gray-600 bg-gray-50/50 min-h-screen selection:bg-emerald-100 selection:text-emerald-900">
       {view !== 'admin_unit' && view !== 'admin_system' && renderNavbar()}
 
-      {/* Container Principal com Animação Suave */}
       <div className="animate-fade-in">
         {view === 'home' && <HomeScreen setView={navigateTo} />}
         
@@ -142,7 +137,15 @@ export default function App() {
             setView={navigateTo} 
           />
         )}
-        
+
+        {/* NOVA TELA DE TRIAGEM */}
+        {view === 'triage' && (
+          <TriageScreen 
+            setView={navigateTo} 
+            setSelectedUnit={setSelectedUnit}
+          />
+        )}
+
         {view === 'admin_unit' && (
           <AdminUnitScreen 
             user={user} 
@@ -170,7 +173,7 @@ export default function App() {
             <div>
               <h4 className="text-sm font-bold text-blue-900">Área Restrita</h4>
               <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-                Painel exclusivo para gestores da Secretaria de Saúde. Suas ações serão registradas.
+                Painel exclusivo para gestores da Secretaria de Saúde.
               </p>
             </div>
           </div>
