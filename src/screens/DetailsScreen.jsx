@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Clock, Users, FileText, Map as MapIcon, ArrowLeft, Star, Activity } from 'lucide-react';
+import { MapPin, Phone, Clock, Users, FileText, Map as MapIcon, ArrowLeft, Star, Activity, Calendar, ChevronRight } from 'lucide-react';
 import Modal from '../components/Utils/Modal';
-import DropdownSection from '../components/Utils/DropdownSection';
 
-// Adicionando 'previousView' como uma prop
 const DetailsScreen = ({ selectedUnit, setView, user, previousView }) => {
   const [activeNews, setActiveNews] = useState(null);
   const [activeService, setActiveService] = useState(null);
@@ -15,155 +13,242 @@ const DetailsScreen = ({ selectedUnit, setView, user, previousView }) => {
 
   const copyLocation = () => {
     const text = `${selectedUnit.name} - ${selectedUnit.rua} - ${selectedUnit.bairro}, ${selectedUnit.cep}`;
-
     try {
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-
-      // Ensure it's not visible but part of DOM
-      textArea.style.position = "fixed";
-      textArea.style.left = "-9999px";
-      textArea.style.top = "0";
-      document.body.appendChild(textArea);
-
-      textArea.focus();
-      textArea.select();
-
-      const successful = document.execCommand('copy');
-      document.body.removeChild(textArea);
-
-      if (successful) {
-        // NOTE: Substituído alert() por console.log, conforme as regras de UX
-        console.log("Endereço copiado!");
-      } else {
-        throw new Error("Falha ao copiar");
-      }
+      navigator.clipboard.writeText(text);
+      console.log("Endereço copiado!");
     } catch (err) {
       console.error('Erro ao copiar: ', err);
-      // NOTE: Substituído alert() por console.log, conforme as regras de UX
-      console.log("Não foi possível copiar o endereço automaticamente.");
     }
   };
 
+  const InfoCard = ({ title, icon: Icon, children }) => (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-full">
+      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-50">
+        <div className="bg-emerald-50 p-2 rounded-lg text-emerald-600">
+          <Icon size={20} />
+        </div>
+        <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
+      </div>
+      <div className="space-y-3">
+        {children}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
-      <div className="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-3 mb-2">
-          {/* CÓDIGO CORRIGIDO: Usa previousView em vez de 'home' */}
-          <button
-            onClick={() => setView(user && user.role === 'system_admin' ? 'admin_system' : previousView)}
-            className="text-emerald-600 flex items-center gap-1 hover:underline"
-          >
-            <ArrowLeft size={16} /> Voltar
-          </button>
-        </div>
+    <div className="min-h-screen bg-gray-50 pb-12 animate-fade-in font-sans">
+      
+      <div className="bg-white border-b border-gray-200 sticky top-[64px] z-30">
+        <div className="max-w-6xl mx-auto px-6 py-4">
+            <button
+              onClick={() => setView(user && user.role === 'system_admin' ? 'admin_system' : previousView)}
+              className="text-gray-500 hover:text-emerald-600 flex items-center gap-2 text-sm font-medium transition-colors mb-4"
+            >
+              <ArrowLeft size={16} /> Voltar para busca
+            </button>
 
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-emerald-500">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">{selectedUnit.name}</h1>
-            <div className="space-y-2 text-gray-600 mb-6">
-              <p className="flex items-center gap-2"><MapPin size={18} className="text-emerald-500" /> {selectedUnit.rua}, {selectedUnit.bairro}</p>
-              <p className="flex items-center gap-2"><Phone size={18} className="text-emerald-500" /> {selectedUnit.phone}</p>
-              <p className="flex items-center gap-2"><Clock size={18} className="text-emerald-500" /> {selectedUnit.hours}</p>
-              <p className="flex items-center gap-2"><Users size={18} className="text-emerald-500" /> {selectedUnit.target}</p>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setView('map')} className="flex-1 bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700 flex items-center justify-center gap-2">
-                <MapIcon size={18} /> Ver no Mapa
-              </button>
-              <button onClick={copyLocation} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300 flex items-center justify-center gap-2">
-                <FileText size={18} /> Copiar Local
-              </button>
-            </div>
-          </div>
-
-          <DropdownSection title="Serviços" defaultOpen={false}>
-            {selectedUnit.services.length === 0 && <p className="text-gray-500 italic">Nenhum serviço listado.</p>}
-            <div className="space-y-2">
-              {selectedUnit.services.map(svc => (
-                <div key={svc.id} onClick={() => setActiveService(svc)} className="p-3 border rounded hover:bg-gray-50 cursor-pointer flex justify-between items-center">
-                  <div>
-                    <p className="font-bold text-gray-800">{svc.name}</p>
-                    <p className="text-xs text-gray-500">{svc.specialty}</p>
-                  </div>
-                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">{svc.doctor}</span>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${selectedUnit.type === 'Hospital' ? 'bg-purple-50 text-purple-700 border-purple-100' : selectedUnit.type === 'UPA' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
+                    {selectedUnit.type}
+                  </span>
+                  {selectedUnit.federativeEntity && <span className="text-xs text-gray-400 font-medium px-2 py-0.5 bg-gray-100 rounded-full">{selectedUnit.federativeEntity}</span>}
                 </div>
-              ))}
-            </div>
-          </DropdownSection>
-
-          <DropdownSection title="Especialidades">
-            {Array.from(new Set(selectedUnit.services.map(s => s.specialty))).map(spec => (
-              <div key={spec} onClick={() => { setSelectedSpecialty(spec); setSpecialtyModalOpen(true); }} className="p-3 border-b last:border-0 hover:bg-gray-50 cursor-pointer">
-                {spec}
-              </div>
-            ))}
-            {selectedUnit.services.length === 0 && <p className="text-gray-500">Nenhuma especialidade.</p>}
-          </DropdownSection>
-
-          <DropdownSection title="Equipe Médica">
-            {selectedUnit.doctors.map(doc => (
-              <div key={doc.id} className="p-3 border-b last:border-0">
-                <p className="font-bold">{doc.name}</p>
-                <p className="text-sm text-gray-600">{doc.specialty} - CRM: {doc.crm}</p>
-              </div>
-            ))}
-            {selectedUnit.doctors.length === 0 && <p className="text-gray-500">Equipe não cadastrada.</p>}
-          </DropdownSection>
-        </div>
-
-        <div className="lg:col-span-1">
-          <DropdownSection title="Notícias Recentes" defaultOpen={true}>
-            <div className="space-y-3">
-              {selectedUnit.news.length === 0 && <p className="text-gray-500 text-sm">Sem notícias recentes.</p>}
-              {selectedUnit.news.map(n => (
-                <div key={n.id} onClick={() => setActiveNews(n)} className="p-3 bg-yellow-50 border border-yellow-100 rounded cursor-pointer hover:bg-yellow-100 transition">
-                  <h4 className="font-bold text-gray-800 text-sm">{n.title}</h4>
-                  <p className="text-xs text-gray-500 mt-1">{n.date}</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">{selectedUnit.name}</h1>
+                <div className="flex items-center gap-2 text-gray-500 text-sm mt-2">
+                  <MapPin size={16} />
+                  <span>{selectedUnit.bairro}</span>
                 </div>
-              ))}
+              </div>
+
+              <div className="flex gap-3 w-full md:w-auto">
+                <button 
+                  onClick={() => setView('map')}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95"
+                >
+                  <MapIcon size={18} /> Ver no Mapa
+                </button>
+                <button 
+                  onClick={copyLocation}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95"
+                >
+                  <FileText size={18} /> Copiar
+                </button>
+              </div>
             </div>
-          </DropdownSection>
         </div>
       </div>
 
-      <Modal isOpen={!!activeNews} onClose={() => setActiveNews(null)} title={activeNews?.title}>
-        <p className="text-sm text-gray-500 mb-4">{activeNews?.date}</p>
-        <p className="text-gray-800 whitespace-pre-wrap">{activeNews?.content}</p>
+      <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Coluna Principal */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Informações Básicas */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-6">
+             <div className="flex items-start gap-3">
+               <div className="bg-blue-50 p-2 rounded-lg text-blue-600"><Clock size={20}/></div>
+               <div>
+                 <p className="text-xs font-bold text-gray-400 uppercase mb-1">Horário de Atendimento</p>
+                 <p className="font-medium text-gray-800">{selectedUnit.hours}</p>
+               </div>
+             </div>
+             <div className="flex items-start gap-3">
+               <div className="bg-purple-50 p-2 rounded-lg text-purple-600"><Phone size={20}/></div>
+               <div>
+                 <p className="text-xs font-bold text-gray-400 uppercase mb-1">Telefone</p>
+                 <p className="font-medium text-gray-800">{selectedUnit.phone}</p>
+               </div>
+             </div>
+             <div className="col-span-1 sm:col-span-2 flex items-start gap-3 pt-4 border-t border-gray-50">
+               <div className="bg-orange-50 p-2 rounded-lg text-orange-600"><MapPin size={20}/></div>
+               <div>
+                 <p className="text-xs font-bold text-gray-400 uppercase mb-1">Endereço Completo</p>
+                 <p className="font-medium text-gray-800">{selectedUnit.rua}, {selectedUnit.bairro} - CEP: {selectedUnit.cep}</p>
+               </div>
+             </div>
+          </div>
+
+          {/* Grid de Serviços e Equipe */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <InfoCard title="Serviços Disponíveis" icon={Activity}>
+              {selectedUnit.services.length === 0 && <p className="text-gray-400 italic text-sm">Informação não disponível.</p>}
+              {selectedUnit.services.map(svc => (
+                <div 
+                  key={svc.id} 
+                  onClick={() => setActiveService(svc)}
+                  className="group flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 transition-all"
+                >
+                  <div>
+                    <p className="font-bold text-gray-700 text-sm group-hover:text-emerald-700">{svc.name}</p>
+                    <p className="text-xs text-gray-400">{svc.specialty}</p>
+                  </div>
+                  <ChevronRight size={16} className="text-gray-300 group-hover:text-emerald-500" />
+                </div>
+              ))}
+            </InfoCard>
+
+            <InfoCard title="Especialidades" icon={Star}>
+               <div className="flex flex-wrap gap-2">
+                {selectedUnit.services.length === 0 && <p className="text-gray-400 italic text-sm">Nenhuma listada.</p>}
+                {Array.from(new Set(selectedUnit.services.map(s => s.specialty))).map(spec => (
+                  <span 
+                    key={spec}
+                    onClick={() => { setSelectedSpecialty(spec); setSpecialtyModalOpen(true); }}
+                    className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg cursor-pointer hover:bg-emerald-100 hover:text-emerald-700 transition-colors"
+                  >
+                    {spec}
+                  </span>
+                ))}
+               </div>
+            </InfoCard>
+
+            <div className="md:col-span-2">
+              <InfoCard title="Corpo Clínico" icon={Users}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {selectedUnit.doctors.length === 0 && <p className="text-gray-400 italic text-sm">Equipe não cadastrada.</p>}
+                  {selectedUnit.doctors.map(doc => (
+                    <div key={doc.id} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl">
+                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-xs">
+                        DR
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-gray-800">{doc.name}</p>
+                        <p className="text-xs text-gray-500">{doc.specialty} • CRM: {doc.crm}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </InfoCard>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Sidebar Lateral (Notícias) */}
+        <div className="lg:col-span-1 space-y-6">
+           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+             <h3 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
+               <Calendar size={18} /> Mural de Avisos
+             </h3>
+             <div className="space-y-4">
+               {selectedUnit.news.length === 0 && <p className="text-blue-400 text-sm italic">Sem avisos recentes.</p>}
+               {selectedUnit.news.map(n => (
+                 <div 
+                   key={n.id} 
+                   onClick={() => setActiveNews(n)}
+                   className="bg-white p-4 rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-all border border-blue-100/50"
+                 >
+                   <div className="flex justify-between items-start mb-2">
+                     <span className="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">NOTÍCIA</span>
+                     <span className="text-[10px] text-gray-400">{n.date}</span>
+                   </div>
+                   <h4 className="font-bold text-gray-800 text-sm leading-snug mb-1">{n.title}</h4>
+                   <p className="text-xs text-gray-500 line-clamp-2">{n.content}</p>
+                 </div>
+               ))}
+             </div>
+           </div>
+        </div>
+      </div>
+
+      <Modal isOpen={!!activeNews} onClose={() => setActiveNews(null)} title="Aviso da Unidade">
+         <div className="mt-2">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{activeNews?.title}</h3>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded mb-4 inline-block">{activeNews?.date}</span>
+            <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{activeNews?.content}</p>
+         </div>
       </Modal>
 
       <Modal isOpen={!!activeService} onClose={() => setActiveService(null)} title="Detalhes do Serviço">
-        <div className="space-y-3">
-          <p><strong>Serviço:</strong> {activeService?.name}</p>
-          <p><strong>Especialidade:</strong> {activeService?.specialty}</p>
-          <p><strong>Médico:</strong> {activeService?.doctor}</p>
-          <p><strong>Descrição:</strong> {activeService?.description}</p>
-          <p><strong>Horários:</strong> {activeService?.hours}</p>
-          <p className="text-sm text-gray-500 mt-4">Necessário encaminhamento prévio da UBS.</p>
-          <button onClick={() => setEvalModalOpen(true)} className="w-full bg-emerald-600 text-white py-2 rounded mt-4">Avaliar Serviço</button>
-        </div>
+         <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+               <div>
+                  <h3 className="font-bold text-lg text-gray-800">{activeService?.name}</h3>
+                  <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded">{activeService?.specialty}</span>
+               </div>
+            </div>
+            <div className="space-y-2 text-sm">
+               <p><strong className="text-gray-900">Médico Responsável:</strong> <span className="text-gray-600">{activeService?.doctor}</span></p>
+               <p><strong className="text-gray-900">Horários:</strong> <span className="text-gray-600">{activeService?.hours}</span></p>
+               <div className="bg-gray-50 p-3 rounded-lg mt-2">
+                  <p className="text-gray-500 italic">"{activeService?.description}"</p>
+               </div>
+            </div>
+            <button onClick={() => setEvalModalOpen(true)} className="w-full bg-gray-900 text-white py-3 rounded-xl mt-4 hover:bg-black transition-colors text-sm font-medium">
+               Avaliar este Serviço
+            </button>
+         </div>
       </Modal>
 
       <Modal isOpen={specialtyModalOpen} onClose={() => setSpecialtyModalOpen(false)} title={`Especialidade: ${selectedSpecialty}`}>
-        <div className="space-y-2">
-          {selectedUnit.services.filter(s => s.specialty === selectedSpecialty).map(s => (
-            <div key={s.id} onClick={() => { setSpecialtyModalOpen(false); setActiveService(s); }} className="p-3 border rounded hover:bg-gray-100 cursor-pointer">
-              <p className="font-bold">{s.name}</p>
-              <p className="text-xs text-gray-500">Dr. {s.doctor}</p>
-            </div>
-          ))}
-        </div>
+         <div className="space-y-2 pt-2">
+           {selectedUnit.services.filter(s => s.specialty === selectedSpecialty).map(s => (
+             <div key={s.id} onClick={() => { setSpecialtyModalOpen(false); setActiveService(s); }} className="p-4 border border-gray-100 rounded-xl hover:bg-gray-50 cursor-pointer flex justify-between items-center transition-colors">
+               <div>
+                  <p className="font-bold text-gray-800">{s.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Dr. {s.doctor}</p>
+               </div>
+               <ChevronRight size={16} className="text-gray-300"/>
+             </div>
+           ))}
+         </div>
       </Modal>
 
       {evalModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-[60]">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-96 animate-fade-in">
-            <h3 className="font-bold text-lg mb-4">Avaliar Serviço</h3>
-            <input className="w-full border p-2 rounded mb-2" placeholder="Título da avaliação" />
-            <textarea className="w-full border p-2 rounded mb-4 h-24" placeholder="Descreva sua experiência..." />
-            <div className="flex gap-2">
-              <button onClick={() => setEvalModalOpen(false)} className="flex-1 bg-gray-300 text-gray-800 py-2 rounded">Cancelar</button>
-              <button onClick={() => { setEvalModalOpen(false); console.log("Avaliação enviada!"); }} className="flex-1 bg-emerald-600 text-white py-2 rounded">Enviar</button>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[60]">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl w-96 animate-fade-in scale-100">
+            <h3 className="font-bold text-lg mb-1 text-gray-900">Avaliar Serviço</h3>
+            <p className="text-xs text-gray-500 mb-4">Sua opinião ajuda a melhorar o atendimento.</p>
+            
+            <input className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl mb-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Título (ex: Ótimo atendimento)" />
+            <textarea className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl mb-4 h-24 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none" placeholder="Conte sua experiência..." />
+            
+            <div className="flex gap-3">
+              <button onClick={() => setEvalModalOpen(false)} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
+              <button onClick={() => { setEvalModalOpen(false); }} className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors">Enviar</button>
             </div>
           </div>
         </div>
