@@ -19,7 +19,7 @@ const HomeScreen = ({ setView }) => {
               Saúde mais <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-200">próxima</span> de você.
             </h1>
             <p className="text-emerald-100/80 text-lg md:text-xl mb-10 font-light leading-relaxed max-w-2xl">
-              Encontre rapidamente Unidades Básicas de Saúde (UBS), UPAs e Hospitais em Mossoró. 
+              Encontre rapidamente Unidades Básicas de Saúde, UPAs e Hospitais em Mossoró. 
               Informações confiáveis para cuidar de quem você ama.
             </p>
             
@@ -32,11 +32,11 @@ const HomeScreen = ({ setView }) => {
                 Explorar no Mapa
               </button>
               <button 
-                onClick={() => setView('advanced_search')}
+                onClick={() => setView('triage')} 
                 className="bg-emerald-800/40 text-white border border-emerald-700 px-8 py-4 rounded-full font-medium text-lg hover:bg-emerald-800/60 transition-all duration-300 backdrop-blur-md flex items-center justify-center gap-2"
               >
-                <Search size={20} />
-                Buscar Unidade
+                <Activity size={20} />
+                Triagem Online
               </button>
             </div>
           </div>
@@ -66,7 +66,6 @@ const HomeScreen = ({ setView }) => {
               className="group bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-emerald-100 transition-all duration-300 cursor-pointer relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
-              
               <div className="relative z-10">
                 <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 mb-6 group-hover:scale-110 transition-transform duration-300 shadow-sm">
                   <MapPin size={32} />
@@ -81,13 +80,11 @@ const HomeScreen = ({ setView }) => {
               </div>
             </div>
 
-            {/* Card Busca */}
             <div 
               onClick={() => setView('advanced_search')}
               className="group bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-blue-100 transition-all duration-300 cursor-pointer relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
-              
               <div className="relative z-10">
                 <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform duration-300 shadow-sm">
                   <Search size={32} />
@@ -102,18 +99,18 @@ const HomeScreen = ({ setView }) => {
               </div>
             </div>
 
-            {/* Card Triagem (Em Breve) */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden opacity-70 hover:opacity-90 transition-opacity grayscale hover:grayscale-0">
-              <div className="absolute top-4 right-4 bg-gray-100 text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                Em Breve
-              </div>
-              
+            <div 
+              onClick={() => setView('triage')} 
+              className="group bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-orange-100 transition-all duration-300 cursor-pointer relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
               <div className="relative z-10">
-                <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 mb-6 shadow-sm">
+                <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 mb-6 group-hover:scale-110 transition-transform duration-300 shadow-sm">
                   <Activity size={32} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-3">
+                <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-orange-700 transition-colors flex items-center gap-2">
                   Triagem Online
+                  <ChevronRight size={18} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                 </h3>
                 <p className="text-gray-500 text-sm leading-relaxed">
                   Inteligência artificial para pré-atendimento. Informe seus sintomas e saiba a urgência do seu caso.
