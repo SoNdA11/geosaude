@@ -113,7 +113,7 @@ const HomeScreen = ({ setView }) => {
                   <ChevronRight size={18} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                 </h3>
                 <p className="text-gray-500 text-sm leading-relaxed">
-                  Inteligência artificial para pré-atendimento. Informe seus sintomas e saiba a urgência do seu caso.
+                  Avaliação inicial baseada no Protocolo de Manchester. Informe seus sintomas e veja o nível de prioridade do seu atendimento.
                 </p>
               </div>
             </div>
