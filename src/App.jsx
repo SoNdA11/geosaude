@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { LogOut, MapPin, Lock, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LogOut, MapPin, Lock, Loader2 } from 'lucide-react';
 
-// Importação dos dados
-import { MOCK_UNITS, MOCK_USERS } from './data/mockData';
+// Importação da conexão com o banco
+import { supabase } from './data/supabaseClient';
+import { MOCK_USERS } from './data/mockData';
 
 // Importação dos utilitários
 import Modal from './components/Utils/Modal';
@@ -16,24 +17,129 @@ import AdminUnitScreen from './screens/Admin/AdminUnitScreen';
 import AdminSystemScreen from './screens/Admin/AdminSystemScreen';
 import TriageScreen from './screens/TriageScreen';
 
-
 export default function App() {
-  const [view, setView] = useState('home');
-  const [previousView, setPreviousView] = useState('home');
+  // Estados de Navegação e Dados Globais
+  const [view, setView] = useState('home'); 
   const [user, setUser] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [units, setUnits] = useState(MOCK_UNITS);
   
+  // O estado 'units' agora começa vazio e o 'loading' controla o carregamento
+  const [units, setUnits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Login State
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  const navigateTo = (newView) => {
-    setPreviousView(view);
-    setView(newView);
+  // --- 🔄 OPERAÇÃO: READ (Buscar dados do Supabase) ---
+  const fetchUnits = async () => {
+    try {
+      setLoading(true);
+      
+      // Busca todas as unidades e traz junto os serviços e notícias de cada uma (INNER JOIN automático)
+      const { data, error } = await supabase
+        .from('unidades')
+        .select('*, services(*), news(*)');
+
+      if (error) throw error;
+
+      // Ajuste leve para manter compatibilidade com a tela de detalhes que espera uma lista de 'doctors'
+      const formattedData = data.map(unit => ({
+        ...unit,
+        services: unit.services || [],
+        news: unit.news || [],
+        // Gera a equipe médica dinamicamente com base nos médicos cadastrados nos serviços
+        doctors: unit.services 
+          ? unit.services.map(s => ({ id: s.id, name: s.doctor, specialty: s.specialty, crm: "CRM-RN" })).filter(d => d.name)
+          : []
+      }));
+
+      setUnits(formattedData);
+    } catch (error) {
+      console.error("Erro ao buscar dados do Supabase:", error.message);
+      alert("Não foi possível carregar os dados da saúde. Verifique a conexão.");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Dispara a busca assim que o site abre
+  useEffect(() => {
+    fetchUnits();
+  }, []);
+
+
+  // --- 🔄 OPERAÇÕES DO CRUD ---
+
+  // Função para Atualizar Informações da Unidade (UPDATE)
+  const handleUpdateUnit = async (unitId, updatedFields) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('unidades')
+        .update(updatedFields)
+        .eq('id', unitId); // "Altere APENAS a unidade que tiver esse ID"
+
+      if (error) throw error;
+      
+      alert("Unidade atualizada com sucesso no banco de dados!");
+      await fetchUnits(); // Recarrega os dados fresquinhos do banco
+    } catch (error) {
+      console.error("Erro ao atualizar unidade:", error.message);
+      alert("Falha ao salvar as alterações.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para Adicionar Serviço ou Notícia (CREATE)
+  const handleAddItem = async (table, itemData) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from(table) // table será 'services' ou 'news'
+        .insert([itemData]);
+
+      if (error) throw error;
+      
+      alert("Item adicionado com sucesso!");
+      await fetchUnits(); // Recarrega os dados fresquinhos
+    } catch (error) {
+      console.error(`Erro ao adicionar item na tabela ${table}:`, error.message);
+      alert("Falha ao adicionar o item.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para Deletar Serviço ou Notícia (DELETE)
+  const handleDeleteItem = async (table, itemId) => {
+    // Pedir confirmação antes de deletar do banco
+    if (!window.confirm("Tem certeza que deseja deletar permanentemente este item?")) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+      
+      alert("Item deletado permanentemente!");
+      await fetchUnits(); // Atualiza a tela
+    } catch (error) {
+      console.error(`Erro ao deletar item ID ${itemId} da tabela ${table}:`, error.message);
+      alert("Falha ao deletar o item.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  // --- SISTEMA DE AUTENTICAÇÃO MOCKADO (Mantido simples para o PI II) ---
   const handleLogin = () => {
     const foundUser = MOCK_USERS.find(u => u.email === loginEmail && u.password === loginPass);
     if (foundUser) {
@@ -41,9 +147,9 @@ export default function App() {
       setShowLoginModal(false);
       setLoginError('');
       if (foundUser.role === 'system_admin') {
-        navigateTo('admin_system');
+        setView('admin_system');
       } else if (foundUser.role === 'unit_admin') {
-        navigateTo('admin_unit');
+        setView('admin_unit');
       }
     } else {
       setLoginError('Credenciais inválidas.');
@@ -52,177 +158,150 @@ export default function App() {
 
   const handleLogout = () => {
     setUser(null);
-    navigateTo('home');
+    setView('home');
   };
 
-  const renderNavbar = () => (
-    <div className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm/50 backdrop-blur-md bg-opacity-90">
-      <div className="w-full px-6 md:px-10">
-        <div className="flex justify-between items-center h-16">
-          
-          <div 
-            className="flex items-center gap-3 cursor-pointer group transition-all" 
-            onClick={() => navigateTo('home')}
-          >
-            <div className="bg-gradient-to-tr from-emerald-500 to-teal-400 p-2 rounded-xl shadow-lg shadow-emerald-100 group-hover:scale-105 transition-transform duration-300">
-              <MapPin className="text-white w-5 h-5" strokeWidth={2.5} />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-gray-800 tracking-tight leading-none group-hover:text-emerald-700 transition-colors">
-                GeoSaúde
-              </h1>
-              <span className="text-[10px] text-emerald-600 font-bold tracking-widest uppercase">Mossoró</span>
-            </div>
-          </div>
-
-          {user ? (
-            <div className="flex items-center gap-4 pl-6 border-l border-gray-100">
-              <div className="hidden md:flex flex-col items-end">
-                <span className="text-sm font-semibold text-gray-700 leading-tight">{user.name}</span>
-                <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wide">
-                  {user.role === 'system_admin' ? 'Gestor do Sistema' : 'Gestor de Unidade'}
-                </span>
-              </div>
-              <button 
-                onClick={handleLogout} 
-                className="text-gray-400 hover:text-red-500 transition-all p-2 rounded-full hover:bg-red-50 active:scale-95 flex items-center gap-2 group"
-                title="Sair do Sistema"
-              >
-                <span className="text-sm font-medium group-hover:text-red-500 hidden md:block">Sair</span>
-                <LogOut size={20} strokeWidth={2} />
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setShowLoginModal(true)}
-              className="text-sm font-semibold text-gray-500 hover:text-emerald-700 flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all group"
-            >
-              <Lock size={16} className="text-gray-400 group-hover:text-emerald-500 transition-colors" />
-              <span>Área do Gestor</span>
-            </button>
-          )}
+const renderNavbar = () => (
+    <div className="bg-emerald-600 text-white p-4 shadow-lg flex items-center justify-between sticky top-0 z-40">
+      {/* Lado Esquerdo: Logo e Título */}
+      <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
+        <div className="bg-white p-1 rounded-full">
+          <MapPin className="text-emerald-600" size={20} />
         </div>
+        <h1 className="text-lg md:text-xl font-bold tracking-wide">Geosaúde Mossoró</h1>
       </div>
+
+      {/* Lado Direito Dinâmico */}
+      {user ? (
+        // Se estiver LOGADO, mostra o nome e o botão de Sair
+        <div className="flex items-center gap-3">
+          <span className="hidden md:inline text-sm font-medium">{user.name}</span>
+          <button onClick={handleLogout} className="bg-emerald-700 p-2 rounded hover:bg-emerald-800 transition" title="Sair do Painel">
+            <LogOut size={18} />
+          </button>
+        </div>
+      ) : (
+        // Se NÃO estiver logado, mostra o botão de acesso administrativo no topo
+        <button 
+          onClick={() => setShowLoginModal(true)}
+          className="flex items-center gap-1.5 bg-emerald-700 px-3 py-1.5 rounded-full text-xs font-semibold hover:bg-emerald-800 transition shadow-sm border border-emerald-500/30"
+        >
+          <Lock size={12} />
+          Área do Admin
+        </button>
+      )}
     </div>
   );
 
+  // Tela de carregamento elegante enquanto o Supabase responde
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
+        <Loader2 className="text-emerald-600 animate-spin" size={48} />
+        <p className="text-gray-600 font-medium animate-pulse">Conectando ao banco de dados do Geosaúde...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="font-sans text-gray-600 bg-gray-50/50 min-h-screen selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="font-sans text-gray-800">
       {view !== 'admin_unit' && view !== 'admin_system' && renderNavbar()}
 
-      <div className="animate-fade-in">
-        {view === 'home' && <HomeScreen setView={navigateTo} />}
-        
-        {view === 'map' && (
-          <MapScreen 
-            units={units} 
-            setSelectedUnit={setSelectedUnit} 
-            setView={navigateTo} 
-          />
-        )}
-        
-        {view === 'details' && (
-          <DetailsScreen 
-            selectedUnit={selectedUnit} 
-            setView={navigateTo} 
-            user={user} 
-            previousView={previousView}
-          />
-        )}
-        
-        {view === 'advanced_search' && (
-          <AdvancedSearchScreen 
-            units={units} 
-            setSelectedUnit={setSelectedUnit} 
-            setView={navigateTo} 
-          />
-        )}
+      {view === 'home' && <HomeScreen setView={setView} setShowLoginModal={setShowLoginModal} />}
+      
+      {view === 'map' && (
+        <MapScreen 
+          units={units} 
+          setSelectedUnit={setSelectedUnit} 
+          setView={setView} 
+        />
+      )}
+      
+      {view === 'details' && (
+        <DetailsScreen 
+          selectedUnit={selectedUnit} 
+          setView={setView} 
+          user={user} 
+        />
+      )}
 
-        {/* NOVA TELA DE TRIAGEM */}
-        {view === 'triage' && (
-          <TriageScreen 
-            setView={navigateTo} 
-            setSelectedUnit={setSelectedUnit}
-          />
-        )}
+      {/* 🩺 ROTA DA SUA TRIAGEM REAL RECONECTADA NO SISTEMA */}
+      {view === 'triage' && (
+        <TriageScreen 
+          setView={setView} 
+          setSelectedUnit={setSelectedUnit}
+        />
+      )}
+      
+      {view === 'advanced_search' && (
+        <AdvancedSearchScreen 
+          units={units} 
+          setSelectedUnit={setSelectedUnit} 
+          setView={setView} 
+        />
+      )}
+      
+      {view === 'admin_unit' && (
+        <AdminUnitScreen 
+          user={user} 
+          units={units} 
+          handleLogout={handleLogout}
+          onUpdateUnit={handleUpdateUnit}
+          onAddItem={handleAddItem}
+          onDeleteItem={handleDeleteItem}
+        />
+      )}
+      
+      {view === 'admin_system' && (
+        <AdminSystemScreen 
+          units={units} 
+          setSelectedUnit={setSelectedUnit} 
+          setView={setView} 
+          handleLogout={handleLogout} 
+        />
+      )}
 
-        {view === 'admin_unit' && (
-          <AdminUnitScreen 
-            user={user} 
-            units={units} 
-            handleLogout={handleLogout} 
-          />
-        )}
-        
-        {view === 'admin_system' && (
-          <AdminSystemScreen 
-            units={units} 
-            setSelectedUnit={setSelectedUnit} 
-            setView={navigateTo} 
-            handleLogout={handleLogout} 
-          />
-        )}
-      </div>
-
-      <Modal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} title="Acesso Administrativo">
-        <div className="flex flex-col gap-6 pt-2 px-1 pb-2">
-          <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-start gap-3 shadow-sm">
-            <div className="bg-blue-100 p-2 rounded-full text-blue-600 shrink-0 mt-0.5">
-              <Lock size={16} />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-blue-900">Área Restrita</h4>
-              <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-                Painel exclusivo para gestores da Secretaria de Saúde.
-              </p>
-            </div>
+      {/* Modal Login Global */}
+      <Modal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} title="Acesso Restrito">
+        <div className="flex flex-col gap-4">
+          <div className="bg-red-50 border-l-4 border-red-500 p-3 flex items-start gap-2">
+            <Lock className="text-red-500 shrink-0 mt-1" size={16} />
+            <p className="text-xs text-red-700">Esta área é protegida. Certifique-se de que possui autorização antes de acessar.</p>
           </div>
           
-          <div className="space-y-4">
-            <div className="group">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 group-focus-within:text-emerald-600 transition-colors">E-mail Institucional</label>
-              <input 
-                type="email" 
-                className="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-sm focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-300"
-                placeholder="ex: nome@saude.mossoro.rn.gov.br"
-                value={loginEmail}
-                onChange={e => setLoginEmail(e.target.value)}
-              />
-            </div>
-            <div className="group">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 group-focus-within:text-emerald-600 transition-colors">Senha de Acesso</label>
-              <input 
-                type="password" 
-                className="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-sm focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-300 tracking-widest"
-                placeholder="••••••••"
-                value={loginPass}
-                onChange={e => setLoginPass(e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">E-mail</label>
+            <input 
+              type="email" 
+              className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+              value={loginEmail}
+              onChange={e => setLoginEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Senha</label>
+            <input 
+              type="password" 
+              className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+              value={loginPass}
+              onChange={e => setLoginPass(e.target.value)}
+            />
           </div>
 
-          {loginError && (
-            <div className="text-red-600 text-xs bg-red-50 border border-red-100 p-3 rounded-lg text-center font-medium animate-pulse">
-              {loginError}
-            </div>
-          )}
+          {loginError && <p className="text-red-500 text-sm text-center">{loginError}</p>}
 
           <button 
             onClick={handleLogin}
-            className="w-full bg-gray-900 text-white py-3.5 rounded-xl hover:bg-black font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-gray-200 hover:shadow-xl flex justify-center items-center gap-2"
+            className="w-full bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700 font-medium"
           >
-            <span>Acessar Painel</span>
-            <Lock size={16} className="opacity-50" />
+            Entrar
           </button>
         </div>
       </Modal>
 
       <style>{`
-        .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes fadeIn { 
-          from { opacity: 0; transform: translateY(15px) scale(0.98); } 
-          to { opacity: 1; transform: translateY(0) scale(1); } 
-        }
+        .animate-fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
       `}</style>
     </div>
   );
