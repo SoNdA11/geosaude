@@ -5,9 +5,10 @@ import ModalUnitEdit from '../../components/ModalUnitEdit';
 import ModalConfirmation from '../../components/ModalConfirmation';
 import ModalResetPassword from '../../components/ModalResetPassword';
 import ModalSuccess from '../../components/ModalSuccess';
-import { MOCK_USERS, MOCK_HISTORY } from '../../data/mockData';
+import {MOCK_HISTORY } from '../../data/mockData';
 
 const AdminSystemScreen = ({ units, setSelectedUnit, setView, handleLogout }) => {
+  const adminUsers = []; // Array vazio temporário até fazer o CRUD
   const [sysSection, setSysSection] = useState('units');
   
   const [isEditAdminModalOpen, setIsEditAdminModalOpen] = useState(false);
@@ -44,7 +45,7 @@ const AdminSystemScreen = ({ units, setSelectedUnit, setView, handleLogout }) =>
     else if (sysSection === 'admins') { setSelectedAdmin(null); setIsEditAdminModalOpen(true); }
   };
 
-  const adminUsers = MOCK_USERS.filter(u => u.role === 'unit_admin');
+  //const adminUsers = MOCK_USERS.filter(u => u.role === 'unit_admin');
 
   const DashboardCard = ({ title, count, icon: Icon, active, onClick, colorClass }) => (
     <div 

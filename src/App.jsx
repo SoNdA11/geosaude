@@ -3,7 +3,7 @@ import { LogOut, MapPin, Lock, Loader2 } from 'lucide-react';
 
 // Importação da conexão com o banco
 import { supabase } from './data/supabaseClient';
-import { MOCK_USERS } from './data/mockData';
+//import { MOCK_USERS } from './data/mockData';
 
 // Importação dos utilitários
 import Modal from './components/Utils/Modal';
@@ -140,19 +140,50 @@ export default function App() {
 
 
   // --- SISTEMA DE AUTENTICAÇÃO MOCKADO (Mantido simples para o PI II) ---
-  const handleLogin = () => {
-    const foundUser = MOCK_USERS.find(u => u.email === loginEmail && u.password === loginPass);
-    if (foundUser) {
-      setUser(foundUser);
-      setShowLoginModal(false);
+  // --- 🔐 SISTEMA DE AUTENTICAÇÃO REAL (Supabase) ---
+  const handleLogin = async () => {
+    try {
+      setLoading(true);
       setLoginError('');
-      if (foundUser.role === 'system_admin') {
+
+      // Faz uma busca na tabela de perfis cruzando e-mail e senha
+      // Nota: Para o PI II, manter a busca por texto limpo resolve sem complicar.
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', loginEmail)
+        .eq('password', loginPass)
+        .single(); // Traz apenas um único registro correspondente
+
+      if (error || !data) {
+        setLoginError('Usuário ou senha incorretos.');
+        return;
+      }
+
+      // Se encontrou o usuário no banco, injeta no estado do React
+      setUser({
+        id: data.id,
+        name: data.name,
+        role: data.role,     // 'system_admin' ou 'unit_admin'
+        unitId: data.unit_id // ID da UBS que ele gerencia (se for unit_admin)
+      });
+
+      setShowLoginModal(false);
+      setLoginEmail('');
+      setLoginPass('');
+
+      // Redireciona para o painel correto com base no nível de acesso do banco
+      if (data.role === 'system_admin') {
         setView('admin_system');
-      } else if (foundUser.role === 'unit_admin') {
+      } else if (data.role === 'unit_admin') {
         setView('admin_unit');
       }
-    } else {
-      setLoginError('Credenciais inválidas.');
+
+    } catch (err) {
+      console.error("Erro na autenticação:", err.message);
+      setLoginError('Erro ao conectar ao servidor de autenticação.');
+    } finally {
+      setLoading(false);
     }
   };
 

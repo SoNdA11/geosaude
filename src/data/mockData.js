@@ -2,7 +2,7 @@
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 // --- MOCK DATA (Dados Simulados) ---
-export const MOCK_UNITS = [
+/*export const MOCK_UNITS = [
   {
     id: 1,
     name: "UBS Centro Clínico - Dr. José Leão",
@@ -79,12 +79,12 @@ export const MOCK_UNITS = [
     doctors: [],
     reviews: []
   }
-];
+];*/
 
-export const MOCK_USERS = [
-  { id: 1, email: "admin@admin.com", password: "@admin@", role: "system_admin", name: "Administrador Geral" },
-  { id: 2, email: "MarcosNunes@gmail.com", password: "@marcosnunes@", role: "unit_admin", name: "Marcos Nunes", unitId: 1 }
-];
+//export const MOCK_USERS = [
+ // { id: 1, email: "admin@admin.com", password: "@admin@", role: "system_admin", name: "Administrador Geral" },
+ // { id: 2, email: "MarcosNunes@gmail.com", password: "@marcosnunes@", role: "unit_admin", name: "Marcos Nunes", unitId: 1 }
+//];
 
 export const MOCK_HISTORY = [
   { id: 1, user: "Marcos Nunes", date: "20/11/2025 10:00", action: "Editou horário da UBS Centro", unit: "UBS Centro Clínico" },
