@@ -82,8 +82,8 @@ export const MOCK_UNITS = [
 ];
 
 export const MOCK_USERS = [
-  { id: 1, email: "admin@admin.com", password: "@admin@", role: "system_admin", name: "Administrador Geral" },
-  { id: 2, email: "MarcosNunes@gmail.com", password: "@marcosnunes@", role: "unit_admin", name: "Marcos Nunes", unitId: 1 }
+  { id: 1, email: "admin@admin.com", password: "admin", role: "system_admin", name: "Administrador Geral" },
+  { id: 2, email: "gestor@gmail.com", password: "123", role: "unit_admin", name: "Marcos Nunes", unitId: 1 }
 ];
 
 export const MOCK_HISTORY = [

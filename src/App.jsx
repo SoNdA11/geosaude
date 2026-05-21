@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LogOut, MapPin, Lock, User } from 'lucide-react';
-
-// Importação dos dados
-import { MOCK_UNITS, MOCK_USERS } from './data/mockData';
 
 // Importação dos utilitários
 import Modal from './components/Utils/Modal';
+import { useAuth } from './hooks/useAuth';
 
 // Importação das Telas
 import HomeScreen from './screens/HomeScreen';
@@ -18,42 +16,75 @@ import TriageScreen from './screens/TriageScreen';
 
 
 export default function App() {
+  const { user: authUser, profile, isAuthenticated, signIn, signOut, isLoading } = useAuth();
+  
   const [view, setView] = useState('home');
   const [previousView, setPreviousView] = useState('home');
-  const [user, setUser] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [units, setUnits] = useState(MOCK_UNITS);
+  const [units, setUnits] = useState([]);
   
+  // Novo sistema de login com Supabase Auth
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+
+  // Carregar units do Supabase quando o usuário autentica
+  useEffect(() => {
+    if (isAuthenticated && profile) {
+      // Aqui você carregará units do Supabase na Fase 4
+      // Por enquanto, mantém units local
+      console.log('✅ Usuário autenticado:', profile.name, `(${profile.role})`);
+      if (profile.role === 'system_admin') {
+        setView('admin_system');
+      } else if (profile.role === 'unit_admin') {
+        setView('admin_unit');
+      }
+    } else if (!isLoading && !isAuthenticated) {
+      setView('home');
+    }
+  }, [isAuthenticated, profile, isLoading]);
 
   const navigateTo = (newView) => {
     setPreviousView(view);
     setView(newView);
   };
 
-  const handleLogin = () => {
-    const foundUser = MOCK_USERS.find(u => u.email === loginEmail && u.password === loginPass);
-    if (foundUser) {
-      setUser(foundUser);
-      setShowLoginModal(false);
-      setLoginError('');
-      if (foundUser.role === 'system_admin') {
-        navigateTo('admin_system');
-      } else if (foundUser.role === 'unit_admin') {
-        navigateTo('admin_unit');
+  const handleLogin = async () => {
+    setIsLoginLoading(true);
+    setLoginError('');
+    try {
+      const result = await signIn(loginEmail, loginPass);
+      if (result.success) {
+        setShowLoginModal(false);
+        // O useEffect acima gerenciará a navegação baseado em result.profile.role
+      } else {
+        setLoginError(result.error || 'Credenciais inválidas.');
       }
-    } else {
-      setLoginError('Credenciais inválidas.');
+    } catch (error) {
+      setLoginError('Erro ao conectar. Tente novamente.');
+      console.error('Login error:', error);
+    } finally {
+      setIsLoginLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    navigateTo('home');
+  const handleLogout = async () => {
+    const result = await signOut();
+    if (result.success) {
+      setView('home');
+    }
   };
+
+  // Derivar 'user' do profile para compatibilidade com componentes existentes
+  const user = profile ? {
+    id: authUser?.id,
+    email: profile.email,
+    name: profile.name,
+    role: profile.role,
+    unitId: profile.unit_id,
+  } : null;
 
   const renderNavbar = () => (
     <div className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm/50 backdrop-blur-md bg-opacity-90">
@@ -209,9 +240,10 @@ export default function App() {
 
           <button 
             onClick={handleLogin}
-            className="w-full bg-gray-900 text-white py-3.5 rounded-xl hover:bg-black font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-gray-200 hover:shadow-xl flex justify-center items-center gap-2"
+            disabled={isLoginLoading}
+            className="w-full bg-gray-900 text-white py-3.5 rounded-xl hover:bg-black font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-gray-200 hover:shadow-xl flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span>Acessar Painel</span>
+            <span>{isLoginLoading ? 'Conectando...' : 'Acessar Painel'}</span>
             <Lock size={16} className="opacity-50" />
           </button>
         </div>
