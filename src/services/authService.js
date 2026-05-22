@@ -26,7 +26,7 @@ export const signUp = async (email, password, name, role = 'user', unitId = null
       .from('profiles')
       .insert([
         {
-          id: authData.user.id, // Usar o ID do user auth
+          auth_id: authData.user.id, // Relaciona com o ID do Auth 
           email,
           name,
           role,
@@ -69,7 +69,7 @@ export const signIn = async (email, password) => {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', authData.user.id)
+      .eq('auth_id', authData.user.id)
       .single();
 
     if (profileError) throw new Error(`Profile error: ${profileError.message}`);
@@ -135,7 +135,7 @@ export const getCurrentUser = async () => {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('auth_id', session.user.id)
       .single();
 
     if (profileError) throw new Error(`Profile error: ${profileError.message}`);
@@ -164,7 +164,7 @@ export const updateProfile = async (userId, data) => {
     const { error } = await supabase
       .from('profiles')
       .update(data)
-      .eq('id', userId);
+      .eq('auth_id', userId);
 
     if (error) throw new Error(`Update error: ${error.message}`);
 
@@ -172,7 +172,7 @@ export const updateProfile = async (userId, data) => {
     const { data: updatedProfile, error: fetchError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('auth_id', userId)
       .single();
 
     if (fetchError) throw new Error(`Fetch error: ${fetchError.message}`);
@@ -242,24 +242,41 @@ export const updatePassword = async (newPassword) => {
 // ============================================
 // AUTH STATE LISTENER - Ouvir mudanças de autenticação
 // ============================================
+// ============================================
+// AUTH STATE LISTENER - Ouvir mudanças de autenticação
+// ============================================
 export const onAuthStateChange = (callback) => {
   const {
     data: { subscription },
   } = supabase.auth.onAuthStateChange(async (event, session) => {
     if (session) {
-      // Carregar profile quando houver session
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      try {
+        // Carregar profile quando houver session
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('auth_id', session.user.id)
+          .single();
 
-      callback({
-        event,
-        user: session.user,
-        profile,
-        session,
-      });
+        // Se houver erro (ex: perfil não existe), lança para o catch
+        if (error) throw new Error(error.message);
+
+        callback({
+          event,
+          user: session.user,
+          profile,
+          session,
+        });
+      } catch (err) {
+        console.error('⚠️ Erro silencioso capturado no AuthListener:', err.message);
+        // Retorna o callback mesmo com erro para não travar a UI do React
+        callback({
+          event,
+          user: session.user,
+          profile: null,
+          session,
+        });
+      }
     } else {
       callback({
         event,

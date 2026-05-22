@@ -39,7 +39,7 @@ export const getProfileById = async (profileId) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', profileId)
+      .eq('auth_id', profileId)
       .single();
 
     if (error) throw new Error(`Fetch error: ${error.message}`);
@@ -65,7 +65,7 @@ export const getProfileById = async (profileId) => {
 export const createProfile = async (userId, profileData) => {
   try {
     const dataWithId = {
-      id: userId,
+      auth_id: userId,
       ...profileData,
       created_at: new Date(),
     };
@@ -104,7 +104,7 @@ export const updateProfile = async (profileId, updateData) => {
     const { data, error } = await supabase
       .from('profiles')
       .update(updateData)
-      .eq('id', profileId)
+      .eq('auth_id', profileId)
       .select()
       .single();
 
@@ -137,7 +137,7 @@ export const deleteProfile = async (profileId) => {
     const { error: profileError } = await supabase
       .from('profiles')
       .delete()
-      .eq('id', profileId);
+      .eq('auth_id', profileId);
 
     if (profileError) throw new Error(`Delete profile error: ${profileError.message}`);
 
