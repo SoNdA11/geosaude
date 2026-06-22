@@ -1,0 +1,101 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Unidades {
+  id         BigInt     @id @default(autoincrement())
+  name       String
+  type       String
+  bairro     String
+  cep        String?
+  rua        String?
+  lat        Decimal    @db.Decimal
+  lng        Decimal    @db.Decimal
+  phone      String?
+  hours      String?
+  target     String?
+  urgency    Boolean?
+  open24h    Boolean?
+  created_at DateTime   @default(now()) @db.Timestamptz
+  services   Services[]
+  news       News[]
+  profiles   Profiles[]
+  history    History[]
+  doctors    Doctors[]
+
+  @@map("unidades")
+}
+
+model Services {
+  id          BigInt   @id @default(autoincrement())
+  unit_id     BigInt
+  name        String
+  specialty   String
+  doctor_id   BigInt?
+  description String?
+  hours       String?
+  unit        Unidades @relation(fields: [unit_id], references: [id], onDelete: Cascade)
+  doctor      Doctors? @relation(fields: [doctor_id], references: [id], onDelete: SetNull)
+
+  @@map("services")
+}
+
+model News {
+  id         BigInt    @id @default(autoincrement())
+  unit_id    BigInt
+  title      String
+  content    String
+  date       String
+  expires_at DateTime? @db.Timestamptz
+  unit       Unidades  @relation(fields: [unit_id], references: [id], onDelete: Cascade)
+
+  @@map("news")
+}
+
+model Profiles {
+  id         BigInt    @id @default(autoincrement())
+  name       String
+  email      String    @unique
+  password   String
+  role       String
+  unit_id    BigInt?
+  created_at DateTime  @default(now()) @db.Timestamptz
+  unit       Unidades? @relation(fields: [unit_id], references: [id], onDelete: SetNull)
+  history    History[]
+
+  @@map("profiles")
+}
+
+model Doctors {
+  id         BigInt     @id @default(autoincrement())
+  unit_id    BigInt
+  name       String
+  specialty  String
+  crm        String?
+  created_at DateTime   @default(now()) @db.Timestamptz
+  unit       Unidades   @relation(fields: [unit_id], references: [id], onDelete: Cascade)
+  services   Services[]
+
+  @@map("doctors")
+}
+
+model History {
+  id         BigInt    @id @default(autoincrement())
+  user_id    BigInt?
+  action     String
+  table_name String?
+  record_id  BigInt?
+  unit_id    BigInt?
+  timestamp  DateTime? @default(now()) @db.Timestamptz
+  details    Json?
+  user       Profiles? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  unit       Unidades? @relation(fields: [unit_id], references: [id], onDelete: SetNull)
+
+  @@map("history")
+}
