@@ -1,11 +1,6 @@
-import React, { useState } from 'react';
-import { LogOut, MapPin, Lock, User } from 'lucide-react';
-
-// Importação dos dados
-import { MOCK_UNITS, MOCK_USERS } from './data/mockData';
-
-// Importação dos utilitários
-import Modal from './components/Utils/Modal';
+import React, { useState, useEffect } from 'react';
+import { LogOut, MapPin, Lock } from 'lucide-react';
+import { api } from './utils/api';
 
 // Importação das Telas
 import HomeScreen from './screens/HomeScreen';
@@ -15,42 +10,49 @@ import AdvancedSearchScreen from './screens/AdvancedSearchScreen';
 import AdminUnitScreen from './screens/Admin/AdminUnitScreen';
 import AdminSystemScreen from './screens/Admin/AdminSystemScreen';
 import TriageScreen from './screens/TriageScreen';
-
+import LoginScreen from './screens/LoginScreen';
 
 export default function App() {
   const [view, setView] = useState('home');
   const [previousView, setPreviousView] = useState('home');
   const [user, setUser] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [units, setUnits] = useState(MOCK_UNITS);
-  
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPass, setLoginPass] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [units, setUnits] = useState([]);
+
+  const refreshUnits = async () => {
+    try {
+      const data = await api.getUnits();
+      setUnits(data);
+    } catch (err) {
+      console.error('Erro ao carregar unidades:', err);
+    }
+  };
+
+  useEffect(() => {
+    // Restaurar sessão do localStorage
+    const savedUser = api.getCurrentUser();
+    if (savedUser) {
+      setUser(savedUser);
+    }
+    // Carregar unidades iniciais
+    refreshUnits();
+  }, []);
+
+  // Guarda de Rotas de Administração
+  useEffect(() => {
+    const securedViews = ['admin_unit', 'admin_system'];
+    if (securedViews.includes(view) && !user) {
+      setView('login');
+    }
+  }, [view, user]);
 
   const navigateTo = (newView) => {
     setPreviousView(view);
     setView(newView);
   };
 
-  const handleLogin = () => {
-    const foundUser = MOCK_USERS.find(u => u.email === loginEmail && u.password === loginPass);
-    if (foundUser) {
-      setUser(foundUser);
-      setShowLoginModal(false);
-      setLoginError('');
-      if (foundUser.role === 'system_admin') {
-        navigateTo('admin_system');
-      } else if (foundUser.role === 'unit_admin') {
-        navigateTo('admin_unit');
-      }
-    } else {
-      setLoginError('Credenciais inválidas.');
-    }
-  };
-
   const handleLogout = () => {
+    api.logout();
     setUser(null);
     navigateTo('home');
   };
@@ -94,7 +96,7 @@ export default function App() {
             </div>
           ) : (
             <button 
-              onClick={() => setShowLoginModal(true)}
+              onClick={() => navigateTo('login')}
               className="text-sm font-semibold text-gray-500 hover:text-emerald-700 flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all group"
             >
               <Lock size={16} className="text-gray-400 group-hover:text-emerald-500 transition-colors" />
@@ -138,11 +140,27 @@ export default function App() {
           />
         )}
 
-        {/* NOVA TELA DE TRIAGEM */}
         {view === 'triage' && (
           <TriageScreen 
             setView={navigateTo} 
             setSelectedUnit={setSelectedUnit}
+            units={units}
+          />
+        )}
+
+        {view === 'login' && (
+          <LoginScreen 
+            setView={navigateTo}
+            onLogin={async (email, password) => {
+              const data = await api.login(email, password);
+              setUser(data.user);
+              await refreshUnits();
+              if (data.user.role === 'system_admin') {
+                navigateTo('admin_system');
+              } else if (data.user.role === 'unit_admin') {
+                navigateTo('admin_unit');
+              }
+            }}
           />
         )}
 
@@ -151,6 +169,7 @@ export default function App() {
             user={user} 
             units={units} 
             handleLogout={handleLogout} 
+            refreshUnits={refreshUnits}
           />
         )}
         
@@ -160,62 +179,10 @@ export default function App() {
             setSelectedUnit={setSelectedUnit} 
             setView={navigateTo} 
             handleLogout={handleLogout} 
+            refreshUnits={refreshUnits}
           />
         )}
       </div>
-
-      <Modal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} title="Acesso Administrativo">
-        <div className="flex flex-col gap-6 pt-2 px-1 pb-2">
-          <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-start gap-3 shadow-sm">
-            <div className="bg-blue-100 p-2 rounded-full text-blue-600 shrink-0 mt-0.5">
-              <Lock size={16} />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-blue-900">Área Restrita</h4>
-              <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-                Painel exclusivo para gestores da Secretaria de Saúde.
-              </p>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="group">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 group-focus-within:text-emerald-600 transition-colors">E-mail Institucional</label>
-              <input 
-                type="email" 
-                className="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-sm focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-300"
-                placeholder="ex: nome@saude.mossoro.rn.gov.br"
-                value={loginEmail}
-                onChange={e => setLoginEmail(e.target.value)}
-              />
-            </div>
-            <div className="group">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 group-focus-within:text-emerald-600 transition-colors">Senha de Acesso</label>
-              <input 
-                type="password" 
-                className="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-sm focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition-all placeholder:text-gray-300 tracking-widest"
-                placeholder="••••••••"
-                value={loginPass}
-                onChange={e => setLoginPass(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {loginError && (
-            <div className="text-red-600 text-xs bg-red-50 border border-red-100 p-3 rounded-lg text-center font-medium animate-pulse">
-              {loginError}
-            </div>
-          )}
-
-          <button 
-            onClick={handleLogin}
-            className="w-full bg-gray-900 text-white py-3.5 rounded-xl hover:bg-black font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-gray-200 hover:shadow-xl flex justify-center items-center gap-2"
-          >
-            <span>Acessar Painel</span>
-            <Lock size={16} className="opacity-50" />
-          </button>
-        </div>
-      </Modal>
 
       <style>{`
         .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }

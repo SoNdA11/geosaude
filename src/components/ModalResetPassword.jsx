@@ -20,7 +20,7 @@ const ModalResetPassword = ({ isOpen, onClose, adminData, onSave }) => {
         // The task requires the modal to be functional, but not the backend logic.
         // We simulate a successful save.
         console.log(`Password reset for ${adminData?.name || 'Admin'}`);
-        onSave(); // This will trigger the success modal in the parent component
+        onSave(newPassword); // Envia a nova senha para o callback do componente pai
         onClose();
         setNewPassword('');
         setRepeatPassword('');

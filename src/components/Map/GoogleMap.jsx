@@ -7,11 +7,58 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
   const [markers, setMarkers] = useState([]);
 
   useEffect(() => {
+    const initMap = () => {
+      if (!mapRef.current) return;
+      const mossoro = { lat: -5.1878, lng: -37.3442 };
+      
+      const poiStyle = [
+        {
+          featureType: "poi", 
+          elementType: "labels", 
+          stylers: [{ visibility: "off" }]
+        },
+        {
+          featureType: "road",
+          elementType: "geometry",
+          stylers: [{ lightness: 100 }, { visibility: "simplified" }]
+        }
+      ];
+
+      const newMap = new window.google.maps.Map(mapRef.current, {
+          center: mossoro,
+          zoom: 13,
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
+          styles: poiStyle, 
+      });
+      setMap(newMap);
+    };
+
     const loadGoogleMaps = () => {
-      if (window.google) {
+      // Se a API global já estiver pronta, inicializa o mapa diretamente
+      if (window.google && window.google.maps) {
         initMap();
         return;
       }
+
+      // Se já houver um script de API do Google Maps injetado na página,
+      // evitamos carregar múltiplos scripts e apenas redefinimos o callback global
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+      if (existingScript) {
+        window.initMap = initMap;
+        
+        // Polling rápido caso o script anterior ainda esteja baixando
+        const interval = setInterval(() => {
+          if (window.google && window.google.maps) {
+            clearInterval(interval);
+            initMap();
+          }
+        }, 100);
+        return;
+      }
+
+      // Se for a primeira inicialização do script, injeta-o no document head
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=initMap`;
       script.async = true;
@@ -20,40 +67,13 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
       document.head.appendChild(script);
     };
 
-    const initMap = () => {
-    if (!mapRef.current) return;
-    const mossoro = { lat: -5.1878, lng: -37.3442 };
-    
-    const poiStyle = [
-      {
-        featureType: "poi", 
-        elementType: "labels", 
-        stylers: [{ visibility: "off" }]
-      },
-      {
-        featureType: "road",
-        elementType: "geometry",
-        stylers: [{ lightness: 100 }, { visibility: "simplified" }]
-      }
-    ];
-
-    const newMap = new window.google.maps.Map(mapRef.current, {
-        center: mossoro,
-        zoom: 13,
-        streetViewControl: false,
-        mapTypeControl: false,
-        fullscreenControl: false,
-        styles: poiStyle, 
-    });
-    setMap(newMap);
-};
-
     loadGoogleMaps();
   }, []);
 
   useEffect(() => {
     if (!map) return;
 
+    // Limpar marcadores anteriores
     markers.forEach(m => m.setMap(null));
     
     const filteredUnits = units.filter(u => {
@@ -64,7 +84,6 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
     });
 
     const newMarkers = filteredUnits.map(unit => {
-      
       let pinColor = "#10B981"; // Verde (Padrão/UBS)
       if (unit.type === 'Hospital') pinColor = "#9333EA";
       else if (unit.type === 'UPA') pinColor = "#F97316";
@@ -80,8 +99,17 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
         anchor: new window.google.maps.Point(12, 22),
       };
 
+      // Conversão defensiva para Number para evitar erros de setPosition
+      const latVal = unit.lat !== undefined ? Number(unit.lat) : NaN;
+      const lngVal = unit.lng !== undefined ? Number(unit.lng) : NaN;
+
+      if (isNaN(latVal) || isNaN(lngVal)) {
+        console.warn(`Coordenadas inválidas para unidade: ${unit.name}`, { latVal, lngVal });
+        return null;
+      }
+
       const marker = new window.google.maps.Marker({
-        position: { lat: unit.lat, lng: unit.lng },
+        position: { lat: latVal, lng: lngVal },
         map,
         title: unit.name,
         icon: pinSvg,
@@ -90,7 +118,7 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
       
       marker.addListener("click", () => onMarkerClick(unit));
       return marker;
-    });
+    }).filter(Boolean); // Remover nulos
     
     setMarkers(newMarkers);
     

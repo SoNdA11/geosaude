@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import ModalWrapper from './ModalWrapper';
 
-// Mock data for units - assuming a structure similar to the 'units' prop in AdminSystemScreen
-const MOCK_UNITS = [
-    { id: 1, name: 'UBS Centro Clínico', type: 'UBS' },
-    { id: 2, name: 'UPA Zona Sul', type: 'UPA' },
-    { id: 3, name: 'Hospital Municipal', type: 'Hospital' },
-];
-
-const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave }) => {
+const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave, units = [] }) => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         unitId: '',
+        password: '',
     });
 
     useEffect(() => {
@@ -20,11 +14,18 @@ const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave }) => {
             setFormData({
                 name: adminData.name || '',
                 email: adminData.email || '',
-                // Assuming adminData has a unitId or we can derive it. Using a default for now.
-                unitId: adminData.unitId || MOCK_UNITS[0].id, 
+                unitId: adminData.unitId ? String(adminData.unitId) : '',
+                password: '',
+            });
+        } else {
+            setFormData({
+                name: '',
+                email: '',
+                unitId: '',
+                password: '',
             });
         }
-    }, [adminData]);
+    }, [adminData, units, isOpen]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -33,10 +34,22 @@ const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // The task requires the modal to be functional, but not the backend logic.
-        // We simulate a successful save.
-        console.log('Admin data saved:', formData);
-        onSave(formData); // This will trigger the success modal in the parent component
+        
+        if (!formData.name.trim() || !formData.email.trim() || !formData.unitId || (!adminData && !formData.password.trim())) {
+            alert("Por favor, preencha todos os campos obrigatórios (nome, email, senha e unidade vinculada).");
+            return;
+        }
+
+        // Converte unitId para Number antes de passar para onSave
+        const preparedData = {
+            ...formData,
+            unitId: Number(formData.unitId)
+        };
+        // Se for edição, removemos a senha para não enviar campo vazio
+        if (adminData) {
+            delete preparedData.password;
+        }
+        onSave(preparedData);
         onClose();
     };
 
@@ -67,8 +80,22 @@ const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave }) => {
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border"
                     />
                 </div>
+                {!adminData && (
+                    <div>
+                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">Senha Inicial</label>
+                        <input
+                            type="password"
+                            name="password"
+                            id="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border"
+                        />
+                    </div>
+                )}
                 <div>
-                    <label htmlFor="unitId" className="block text-sm font-medium text-gray-700">Unidade</label>
+                    <label htmlFor="unitId" className="block text-sm font-medium text-gray-700">Unidade Vinculada</label>
                     <select
                         name="unitId"
                         id="unitId"
@@ -77,7 +104,8 @@ const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave }) => {
                         required
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border bg-white"
                     >
-                        {MOCK_UNITS.map(unit => (
+                        <option value="" disabled>Selecione uma unidade...</option>
+                        {units.map(unit => (
                             <option key={unit.id} value={unit.id}>{unit.name} ({unit.type})</option>
                         ))}
                     </select>

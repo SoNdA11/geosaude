@@ -41,7 +41,7 @@ const DetailsScreen = ({ selectedUnit, setView, user, previousView }) => {
       <div className="bg-white border-b border-gray-200 sticky top-[64px] z-30">
         <div className="max-w-6xl mx-auto px-6 py-4">
             <button
-              onClick={() => setView(user && user.role === 'system_admin' ? 'admin_system' : previousView)}
+              onClick={() => setView(previousView)}
               className="text-gray-500 hover:text-emerald-600 flex items-center gap-2 text-sm font-medium transition-colors mb-4"
             >
               <ArrowLeft size={16} /> Voltar para busca

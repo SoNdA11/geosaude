@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import ModalWrapper from './ModalWrapper';
 
-// Mock data for admins - assuming a structure similar to MOCK_USERS in AdminSystemScreen
-const MOCK_ADMINS = [
-    { id: 101, name: 'Marcos Nunes', email: 'marcos.nunes@mock.com' },
-    { id: 102, name: 'Ana Silva', email: 'ana.silva@mock.com' },
-    { id: 103, name: 'Pedro Costa', email: 'pedro.costa@mock.com' },
-];
-
 const UNIT_TYPES = ["UBS", "UPA", "Hospital"];
 
-const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave }) => {
+const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
     const [formData, setFormData] = useState({
         name: '',
         type: UNIT_TYPES[0],
-        adminId: MOCK_ADMINS[0].id,
+        adminId: '',
         latitude: '',
         longitude: '',
+        bairro: '',
+        rua: '',
+        cep: '',
+        phone: '',
+        hours: '',
+        target: '',
+        urgency: false,
+        open24h: false
     });
 
     useEffect(() => {
@@ -24,31 +25,77 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave }) => {
             setFormData({
                 name: unitData.name || '',
                 type: unitData.type || UNIT_TYPES[0],
-                // Assuming unitData has an adminId or we can derive it. Using a default for now.
-                adminId: unitData.adminId || MOCK_ADMINS[0].id, 
-                latitude: unitData.latitude || '',
-                longitude: unitData.longitude || '',
+                adminId: unitData.adminId || (admins[0]?.id || ''), 
+                latitude: unitData.lat !== undefined ? String(unitData.lat) : '',
+                longitude: unitData.lng !== undefined ? String(unitData.lng) : '',
+                bairro: unitData.bairro || '',
+                rua: unitData.rua || '',
+                cep: unitData.cep || '',
+                phone: unitData.phone || '',
+                hours: unitData.hours || '',
+                target: unitData.target || '',
+                urgency: !!unitData.urgency,
+                open24h: !!unitData.open24h
+            });
+        } else {
+            setFormData({
+                name: '',
+                type: UNIT_TYPES[0],
+                adminId: admins[0]?.id || '',
+                latitude: '',
+                longitude: '',
+                bairro: '',
+                rua: '',
+                cep: '',
+                phone: '',
+                hours: '',
+                target: '',
+                urgency: false,
+                open24h: false
             });
         }
-    }, [unitData]);
+    }, [unitData, admins, isOpen]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({ 
+            ...prev, 
+            [name]: type === 'checkbox' ? checked : value 
+        }));
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // The task requires the modal to be functional, but not the backend logic.
-        // We simulate a successful save.
-        console.log('Unit data saved:', formData);
-        onSave(formData); // This will trigger the success modal in the parent component
+
+        if (!formData.name || !formData.type || !formData.latitude || !formData.longitude || 
+            !formData.bairro || !formData.rua || !formData.cep || !formData.phone || 
+            !formData.hours || !formData.target) {
+            alert("Por favor, preencha todos os campos obrigatórios.");
+            return;
+        }
+
+        const preparedData = {
+            name: formData.name,
+            type: formData.type,
+            lat: parseFloat(formData.latitude),
+            lng: parseFloat(formData.longitude),
+            bairro: formData.bairro,
+            rua: formData.rua,
+            cep: formData.cep,
+            phone: formData.phone,
+            hours: formData.hours,
+            target: formData.target,
+            urgency: formData.urgency,
+            open24h: formData.open24h,
+            adminId: formData.adminId ? Number(formData.adminId) : null
+        };
+        onSave(preparedData);
         onClose();
     };
 
     return (
         <ModalWrapper isOpen={isOpen} onClose={onClose} title={unitData ? `Editar Unidade: ${unitData.name}` : 'Adicionar Unidade'} size="md">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
                 <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nome</label>
                     <input
@@ -61,41 +108,46 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave }) => {
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border"
                     />
                 </div>
-                <div>
-                    <label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipo</label>
-                    <select
-                        name="type"
-                        id="type"
-                        value={formData.type}
-                        onChange={handleChange}
-                        required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border bg-white"
-                    >
-                        {UNIT_TYPES.map(type => (
-                            <option key={type} value={type}>{type}</option>
-                        ))}
-                    </select>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipo</label>
+                        <select
+                            name="type"
+                            id="type"
+                            value={formData.type}
+                            onChange={handleChange}
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border bg-white"
+                        >
+                            {UNIT_TYPES.map(type => (
+                                <option key={type} value={type}>{type}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="adminId" className="block text-sm font-medium text-gray-700">Admin Responsável</label>
+                        <select
+                            name="adminId"
+                            id="adminId"
+                            value={formData.adminId}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border bg-white"
+                        >
+                            <option value="">Nenhum</option>
+                            {admins.map(admin => (
+                                <option key={admin.id} value={admin.id}>{admin.name} ({admin.email})</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label htmlFor="adminId" className="block text-sm font-medium text-gray-700">Admin Responsável</label>
-                    <select
-                        name="adminId"
-                        id="adminId"
-                        value={formData.adminId}
-                        onChange={handleChange}
-                        required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border bg-white"
-                    >
-                        {MOCK_ADMINS.map(admin => (
-                            <option key={admin.id} value={admin.id}>{admin.name} ({admin.email})</option>
-                        ))}
-                    </select>
-                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="latitude" className="block text-sm font-medium text-gray-700">Latitude</label>
                         <input
-                            type="text"
+                            type="number"
+                            step="any"
                             name="latitude"
                             id="latitude"
                             value={formData.latitude}
@@ -107,7 +159,8 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave }) => {
                     <div>
                         <label htmlFor="longitude" className="block text-sm font-medium text-gray-700">Longitude</label>
                         <input
-                            type="text"
+                            type="number"
+                            step="any"
                             name="longitude"
                             id="longitude"
                             value={formData.longitude}
@@ -117,6 +170,113 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave }) => {
                         />
                     </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="bairro" className="block text-sm font-medium text-gray-700">Bairro</label>
+                        <input
+                            type="text"
+                            name="bairro"
+                            id="bairro"
+                            value={formData.bairro}
+                            onChange={handleChange}
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="rua" className="block text-sm font-medium text-gray-700">Rua (Endereço)</label>
+                        <input
+                            type="text"
+                            name="rua"
+                            id="rua"
+                            value={formData.rua}
+                            onChange={handleChange}
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="cep" className="block text-sm font-medium text-gray-700">CEP</label>
+                        <input
+                            type="text"
+                            name="cep"
+                            id="cep"
+                            value={formData.cep}
+                            onChange={handleChange}
+                            required
+                            placeholder="Ex: 59600-000"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="target" className="block text-sm font-medium text-gray-700">Público Alvo</label>
+                        <input
+                            type="text"
+                            name="target"
+                            id="target"
+                            value={formData.target}
+                            onChange={handleChange}
+                            required
+                            placeholder="Ex: Moradores do bairro..."
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Telefone</label>
+                        <input
+                            type="text"
+                            name="phone"
+                            id="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="hours" className="block text-sm font-medium text-gray-700">Horário de Funcionamento</label>
+                        <input
+                            type="text"
+                            name="hours"
+                            id="hours"
+                            value={formData.hours}
+                            onChange={handleChange}
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex gap-6 py-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <input
+                            type="checkbox"
+                            name="urgency"
+                            checked={formData.urgency}
+                            onChange={handleChange}
+                            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                        />
+                        Atendimento Urgente
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <input
+                            type="checkbox"
+                            name="open24h"
+                            checked={formData.open24h}
+                            onChange={handleChange}
+                            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                        />
+                        Aberto 24 Horas
+                    </label>
+                </div>
+
                 <div className="flex justify-end pt-4 border-t">
                     <button
                         type="submit"

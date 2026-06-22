@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, ArrowRight, AlertTriangle, CheckCircle, MapPin, Phone, RotateCcw, FileText, Thermometer, Clock, User, ChevronLeft } from 'lucide-react';
+import { api } from '../utils/api';
 
-const TriageScreen = ({ setView, setSelectedUnit }) => {
+const TriageScreen = ({ setView, setSelectedUnit, units = [] }) => {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({
     emergency_symptoms: [],
@@ -84,6 +85,24 @@ const TriageScreen = ({ setView, setSelectedUnit }) => {
       const finalResult = processTriage(updatedAnswers);
       setResult(finalResult);
       setStep(5);
+
+      // Localiza a primeira unidade correspondente ao tipo sugerido para associar no log
+      const recommendedUnit = units.find(u => u.type === finalResult.unitType);
+
+      // Salva o registro no histórico de forma assíncrona
+      api.createTriageLog({
+        action: `Triagem Inteligente: Classificação ${finalResult.title}`,
+        unit_id: recommendedUnit ? recommendedUnit.id : null,
+        details: {
+          answers: updatedAnswers,
+          result: {
+            title: finalResult.title,
+            subtitle: finalResult.subtitle,
+            color: finalResult.color,
+            unitType: finalResult.unitType
+          }
+        }
+      }).catch(err => console.error('Falha ao salvar log de triagem:', err));
     }
   };
 
@@ -373,9 +392,15 @@ const TriageScreen = ({ setView, setSelectedUnit }) => {
           
           <button 
             onClick={restart}
-            className="w-full bg-white border border-gray-200 text-gray-600 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+            className="w-full bg-white border border-gray-200 text-gray-600 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2 mb-2"
           >
             <RotateCcw size={16} /> Refazer Teste
+          </button>
+          <button 
+            onClick={() => setView('home')}
+            className="w-full bg-white border border-gray-200 text-gray-600 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+          >
+            Voltar ao Site
           </button>
         </div>
       </div>
@@ -387,12 +412,13 @@ const TriageScreen = ({ setView, setSelectedUnit }) => {
       <div className="bg-white w-full max-w-md min-h-[600px] rounded-[2rem] shadow-2xl shadow-gray-200 border border-gray-100 relative flex flex-col">
         
         {/* Header Interno */}
-        {step > 0 && step < 5 && (
+        {step < 5 && (
           <div className="px-6 pt-6 pb-2 flex items-center justify-between">
-            <button onClick={goBack} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
+            <button onClick={goBack} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors flex items-center gap-1.5" title="Voltar">
               <ChevronLeft size={24} />
+              {step === 0 && <span className="text-sm font-semibold pr-1">Voltar</span>}
             </button>
-            <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">Passo {step}/4</span>
+            {step > 0 && <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">Passo {step}/4</span>}
             <div className="w-10"></div> 
           </div>
         )}
