@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GOOGLE_MAPS_API_KEY } from '../../data/mockData';
+//import { GOOGLE_MAPS_API_KEY } from '../../data/mockData';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
 
 const GoogleMap = ({ units, onMarkerClick, filters }) => {
   const mapRef = useRef(null);

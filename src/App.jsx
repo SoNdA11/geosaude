@@ -13,8 +13,8 @@ import TriageScreen from './screens/TriageScreen';
 import LoginScreen from './screens/LoginScreen';
 
 export default function App() {
-  const [view, setView] = useState('home');
-  const [previousView, setPreviousView] = useState('home');
+  // Estados de Navegação e Dados Globais
+  const [view, setView] = useState('home'); 
   const [user, setUser] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [units, setUnits] = useState([]);
@@ -46,15 +46,42 @@ export default function App() {
     }
   }, [view, user]);
 
-  const navigateTo = (newView) => {
-    setPreviousView(view);
-    setView(newView);
+  // --- 🔄 OPERAÇÃO: READ (Buscar dados do Supabase) ---
+  const fetchUnits = async () => {
+    try {
+      setLoading(true);
+      
+      // Busca todas as unidades e traz junto os serviços e notícias de cada uma (INNER JOIN automático)
+      const { data, error } = await supabase
+        .from('unidades')
+        .select('*, services(*), news(*)');
+
+      if (error) throw error;
+
+      // Ajuste leve para manter compatibilidade com a tela de detalhes que espera uma lista de 'doctors'
+      const formattedData = data.map(unit => ({
+        ...unit,
+        services: unit.services || [],
+        news: unit.news || [],
+        // Gera a equipe médica dinamicamente com base nos médicos cadastrados nos serviços
+        doctors: unit.services 
+          ? unit.services.map(s => ({ id: s.id, name: s.doctor, specialty: s.specialty, crm: "CRM-RN" })).filter(d => d.name)
+          : []
+      }));
+
+      setUnits(formattedData);
+    } catch (error) {
+      console.error("Erro ao buscar dados do Supabase:", error.message);
+      alert("Não foi possível carregar os dados da saúde. Verifique a conexão.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
     api.logout();
     setUser(null);
-    navigateTo('home');
+    setView('home');
   };
 
   const renderNavbar = () => (
@@ -104,12 +131,43 @@ export default function App() {
             </button>
           )}
         </div>
+        <h1 className="text-lg md:text-xl font-bold tracking-wide">Geosaúde Mossoró</h1>
       </div>
+
+      {/* Lado Direito Dinâmico */}
+      {user ? (
+        // Se estiver LOGADO, mostra o nome e o botão de Sair
+        <div className="flex items-center gap-3">
+          <span className="hidden md:inline text-sm font-medium">{user.name}</span>
+          <button onClick={handleLogout} className="bg-emerald-700 p-2 rounded hover:bg-emerald-800 transition" title="Sair do Painel">
+            <LogOut size={18} />
+          </button>
+        </div>
+      ) : (
+        // Se NÃO estiver logado, mostra o botão de acesso administrativo no topo
+        <button 
+          onClick={() => setShowLoginModal(true)}
+          className="flex items-center gap-1.5 bg-emerald-700 px-3 py-1.5 rounded-full text-xs font-semibold hover:bg-emerald-800 transition shadow-sm border border-emerald-500/30"
+        >
+          <Lock size={12} />
+          Área do Admin
+        </button>
+      )}
     </div>
   );
 
+  // Tela de carregamento elegante enquanto o Supabase responde
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
+        <Loader2 className="text-emerald-600 animate-spin" size={48} />
+        <p className="text-gray-600 font-medium animate-pulse">Conectando ao banco de dados do Geosaúde...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="font-sans text-gray-600 bg-gray-50/50 min-h-screen selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="font-sans text-gray-800">
       {view !== 'admin_unit' && view !== 'admin_system' && renderNavbar()}
 
       <div className="animate-fade-in">
@@ -185,11 +243,8 @@ export default function App() {
       </div>
 
       <style>{`
-        .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes fadeIn { 
-          from { opacity: 0; transform: translateY(15px) scale(0.98); } 
-          to { opacity: 1; transform: translateY(0) scale(1); } 
-        }
+        .animate-fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
       `}</style>
     </div>
   );

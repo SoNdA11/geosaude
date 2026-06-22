@@ -248,13 +248,42 @@ const AdminUnitScreen = ({ user, units, handleLogout, refreshUnits }) => {
     }
   };
 
-  const menuItems = [
-    { id: 'info', label: 'Informações Gerais', icon: FileText },
-    { id: 'team', label: 'Corpo Clínico', icon: Users },
-    { id: 'services', label: 'Serviços Ofertados', icon: Activity },
-    { id: 'news', label: 'Notícias e Avisos', icon: Star },
-    { id: 'history', label: 'Histórico de Logs', icon: Clock },
-  ];
+  // Sincroniza o formulário local sempre que os dados globais do banco forem atualizados
+  useEffect(() => {
+    if (adminUnit) {
+      setInfoForm({
+        name: adminUnit.name,
+        phone: adminUnit.phone,
+        hours: adminUnit.hours,
+        target: adminUnit.target,
+        rua: adminUnit.rua
+      });
+    }
+  }, [adminUnit]);
+
+  // Estados para controlar a exibição e os dados de novos cadastros
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newService, setNewService] = useState({ name: '', specialty: '', doctor: '', description: '', hours: '' });
+  const [newNews, setNewNews] = useState({ title: '', content: '' });
+
+  // Dispara o UPDATE do campo específico no Supabase
+  const handleSaveField = (field) => {
+    onUpdateUnit(adminUnit.id, { [field]: infoForm[field] });
+  };
+
+  // Dispara o CREATE de um serviço ou notícia atrelado a esta unidade
+  const handleCreateItem = async (e) => {
+    e.preventDefault();
+    if (section === 'services') {
+      await onAddItem('services', { ...newService, unit_id: adminUnit.id });
+      setNewService({ name: '', specialty: '', doctor: '', description: '', hours: '' });
+    } else if (section === 'news') {
+      const today = new Date().toLocaleDateString('pt-BR');
+      await onAddItem('news', { ...newNews, unit_id: adminUnit.id, date: today });
+      setNewNews({ title: '', content: '' });
+    }
+    setShowAddForm(false);
+  };
 
   const renderContent = () => {
     if (section === 'info') {
@@ -521,32 +550,26 @@ const AdminUnitScreen = ({ user, units, handleLogout, refreshUnits }) => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 font-sans">
-      <div className="w-full md:w-72 bg-white border-r border-gray-200 flex-shrink-0 md:min-h-screen flex flex-col">
-        <div className="p-8 border-b border-gray-50">
-           <div className="flex items-center gap-3 text-emerald-700 mb-1">
-             <LayoutDashboard size={24} />
-             <span className="font-bold text-lg">Gestão Local</span>
-           </div>
-           <p className="text-xs text-gray-400 pl-9">Painel da Unidade</p>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
+      {/* Sidebar de Navegação Interna */}
+      <div className="w-full md:w-64 bg-gray-800 text-white flex-shrink-0 md:min-h-screen shadow-xl">
+        <div className="p-4 border-b border-gray-700 bg-gray-900">
+          <h3 className="font-bold text-emerald-400 text-sm truncate">{adminUnit?.name}</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Painel Gestor Ativo</p>
         </div>
-        
-        <nav className="flex-1 p-4 space-y-2">
-          {menuItems.map(item => (
+        <nav className="flex md:flex-col overflow-x-auto md:overflow-visible">
+          {[
+            { id: 'info', label: 'Informações', icon: FileText },
+            { id: 'services', label: 'Serviços', icon: Activity },
+            { id: 'news', label: 'Notícias / Avisos', icon: Star },
+            { id: 'history', label: 'Histórico', icon: Clock },
+          ].map(item => (
             <button 
               key={item.id}
-              onClick={() => setSection(item.id)}
-              className={`w-full flex items-center justify-between p-3.5 rounded-xl text-sm font-medium transition-all ${
-                section === item.id 
-                  ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' 
-                  : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-              }`}
+              onClick={() => { setSection(item.id); setShowAddForm(false); }}
+              className={`flex items-center gap-3 p-4 w-full text-left hover:bg-gray-700 transition whitespace-nowrap md:whitespace-normal ${section === item.id ? 'bg-emerald-600 border-l-4 border-emerald-300 font-medium' : ''}`}
             >
-              <div className="flex items-center gap-3">
-                <item.icon size={18} className={section === item.id ? 'text-emerald-600' : 'text-gray-400'} />
-                {item.label}
-              </div>
-              {section === item.id && <ChevronRight size={14} />}
+              <item.icon size={18} /> {item.label}
             </button>
           ))}
         </nav>
