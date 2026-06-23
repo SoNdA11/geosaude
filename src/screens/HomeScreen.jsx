@@ -1,7 +1,39 @@
-import React from 'react';
-import { MapPin, Search, Activity, ChevronRight, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { MapPin, Search, Activity, ChevronRight, Info, FileText, Newspaper, ExternalLink, AlertTriangle } from 'lucide-react';
+import { toast } from '../utils/toast';
 
-const HomeScreen = ({ setView }) => {
+const HomeScreen = ({ setView, onSearchUbs }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [closestUbs, setClosestUbs] = useState(null);
+  const [distance, setDistance] = useState(0);
+  const [searching, setSearching] = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      toast.warning('Digite um Bairro ou CEP para pesquisar.');
+      return;
+    }
+    try {
+      setSearching(true);
+      const res = await onSearchUbs(searchQuery);
+      if (res && !res.success) {
+        if (res.closest) {
+          setClosestUbs(res.closest);
+          setDistance(res.distanceKm);
+          setModalOpen(true);
+        } else {
+          toast.error('Nenhuma UBS encontrada para a localidade informada.');
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao buscar unidade.');
+    } finally {
+      setSearching(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-[calc(100vh-64px)] bg-white">
       
@@ -18,10 +50,31 @@ const HomeScreen = ({ setView }) => {
             <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight tracking-tight">
               Saúde mais <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-200">próxima</span> de você.
             </h1>
-            <p className="text-emerald-100/80 text-lg md:text-xl mb-10 font-light leading-relaxed max-w-2xl">
+            <p className="text-emerald-100/80 text-lg md:text-xl mb-6 font-light leading-relaxed max-w-2xl">
               Encontre rapidamente Unidades Básicas de Saúde, UPAs e Hospitais em Mossoró. 
               Informações confiáveis para cuidar de quem você ama.
             </p>
+
+            {/* Campo de Busca de UBS por Bairro/CEP */}
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-2xl flex flex-col sm:flex-row gap-2 max-w-xl mb-10 shadow-lg mx-auto md:mx-0">
+              <input
+                type="text"
+                placeholder="Digite seu Bairro ou CEP para achar sua UBS..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                disabled={searching}
+                className="flex-1 bg-transparent text-white placeholder:text-emerald-200/60 outline-none px-4 py-3 text-sm focus:ring-0 border-0"
+              />
+              <button
+                onClick={handleSearch}
+                disabled={searching}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shrink-0 active:scale-95 disabled:opacity-50"
+              >
+                <Search size={16} /> 
+                {searching ? 'Buscando...' : 'Descobrir UBS'}
+              </button>
+            </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <button 
@@ -59,7 +112,7 @@ const HomeScreen = ({ setView }) => {
             <p className="text-gray-500">Selecione uma das opções para começar seu atendimento.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
             
             <div 
               onClick={() => setView('map')}
@@ -118,6 +171,46 @@ const HomeScreen = ({ setView }) => {
               </div>
             </div>
 
+            <div 
+              onClick={() => setView('documents_portal')} 
+              className="group bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-purple-100 transition-all duration-300 cursor-pointer relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                  <FileText size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-purple-700 transition-colors flex items-center gap-2">
+                  Documentos Oficiais
+                  <ChevronRight size={18} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                </h3>
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  Acesse campanhas de vacinação, guias do cidadão, decretos oficiais, listas de medicamentos e boletins de saúde.
+                </p>
+              </div>
+            </div>
+
+            <a 
+              href="https://prefeiturademossoro.com.br/categoria/saude"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-teal-100 transition-all duration-300 cursor-pointer relative overflow-hidden block"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-teal-100 rounded-2xl flex items-center justify-center text-teal-600 mb-6 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                  <Newspaper size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-teal-700 transition-colors flex items-center gap-2">
+                  Notícias da Saúde
+                  <ExternalLink size={16} className="text-gray-400 group-hover:text-teal-500 transition-colors" />
+                </h3>
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  Confira as últimas notícias, informativos e comunicados de saúde pública direto do portal da Prefeitura de Mossoró.
+                </p>
+              </div>
+            </a>
+
           </div>
         </div>
       </div>
@@ -128,12 +221,52 @@ const HomeScreen = ({ setView }) => {
           <div className="flex items-center gap-6">
             <span className="hover:text-emerald-600 cursor-pointer transition-colors">Termos de Uso</span>
             <span className="hover:text-emerald-600 cursor-pointer transition-colors">Privacidade</span>
-            <span className="hover:text-emerald-600 cursor-pointer transition-colors flex items-center gap-1">
+            <span 
+              onClick={() => setView('about_project')}
+              className="hover:text-emerald-600 cursor-pointer transition-colors flex items-center gap-1"
+            >
               <Info size={12} /> Sobre o Projeto
             </span>
           </div>
         </div>
       </div>
+
+      {/* Modal de Contingência */}
+      {modalOpen && closestUbs && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-gray-100 overflow-hidden p-6 animate-fade-in space-y-4">
+            <div className="flex items-center gap-3 text-amber-500">
+              <AlertTriangle size={24} />
+              <h3 className="font-bold text-lg text-gray-800">UBS Não Encontrada</h3>
+            </div>
+            <p className="text-gray-600 text-sm">
+              Não encontramos nenhuma UBS cadastrada no Bairro/CEP <strong>"{searchQuery}"</strong>. Deseja visualizar a unidade mais próxima?
+            </p>
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex flex-col gap-1">
+              <span className="text-xs font-bold text-gray-400 uppercase">UBS Mais Próxima</span>
+              <span className="text-sm font-bold text-gray-800">{closestUbs.name}</span>
+              <span className="text-xs text-gray-500">{closestUbs.bairro} • a {distance} km</span>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold text-sm transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setModalOpen(false);
+                  onSearchUbs(closestUbs.name); 
+                }}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-lg shadow-emerald-150 transition-all active:scale-95"
+              >
+                Ver no Mapa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

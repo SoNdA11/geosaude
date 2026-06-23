@@ -65,6 +65,124 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Coordenadas de Bairros e CEPs comuns de Mossoró
+const MOSSORO_COORDS = {
+  'centro': { lat: -5.1883, lng: -37.3441 },
+  'abolicao': { lat: -5.2012, lng: -37.3625 },
+  'nova betania': { lat: -5.1895, lng: -37.3551 },
+  'santo antonio': { lat: -5.1764, lng: -37.3391 },
+  'belo horizonte': { lat: -5.2152, lng: -37.3591 },
+  'alto de sao manoel': { lat: -5.1951, lng: -37.3274 },
+  'paredoes': { lat: -5.1812, lng: -37.3491 },
+  'rincao': { lat: -5.2192, lng: -37.3191 },
+  'barrocas': { lat: -5.1712, lng: -37.3481 },
+  'boa vista': { lat: -5.1862, lng: -37.3321 },
+  'aeroporto': { lat: -5.2102, lng: -37.3712 },
+  'dix-sept rosado': { lat: -5.1982, lng: -37.3512 },
+  'redencao': { lat: -5.2201, lng: -37.3645 },
+  'vicosa': { lat: -5.2052, lng: -37.3151 },
+  
+  // CEPs
+  '59600000': { lat: -5.1883, lng: -37.3441 },
+  '59612000': { lat: -5.2012, lng: -37.3625 },
+  '59611000': { lat: -5.1895, lng: -37.3551 },
+  '59615000': { lat: -5.1764, lng: -37.3391 },
+  '59607000': { lat: -5.2152, lng: -37.3591 },
+  '59628000': { lat: -5.1951, lng: -37.3274 },
+  '59618000': { lat: -5.1812, lng: -37.3491 },
+  '59625000': { lat: -5.2192, lng: -37.3191 },
+  '59616000': { lat: -5.1712, lng: -37.3481 },
+  '59605000': { lat: -5.1862, lng: -37.3321 }
+};
+
+const haversineDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+// GET /units/closest - Obter a UBS mais próxima via Haversine
+router.get('/closest', async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: 'Termo de busca (q) é obrigatório.' });
+  }
+
+  const normalizeText = (text) => {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+  };
+
+  const cleanQuery = normalizeText(q);
+  let searchCoords = null;
+
+  const targetKey = Object.keys(MOSSORO_COORDS).find(k => {
+    const normKey = normalizeText(k);
+    return normKey === cleanQuery || normKey.includes(cleanQuery) || cleanQuery.includes(normKey);
+  });
+
+  if (targetKey) {
+    searchCoords = MOSSORO_COORDS[targetKey];
+  }
+
+  if (!searchCoords) {
+    searchCoords = MOSSORO_COORDS['centro'];
+  }
+
+  try {
+    const ubsList = await prisma.unidades.findMany({
+      where: {
+        type: {
+          equals: 'UBS',
+          mode: 'insensitive'
+        }
+      }
+    });
+
+    if (ubsList.length === 0) {
+      return res.status(404).json({ error: 'Nenhuma UBS cadastrada no sistema.' });
+    }
+
+    let closestUbs = null;
+    let minDistance = Infinity;
+
+    for (const ubs of ubsList) {
+      const ubsLat = Number(ubs.lat);
+      const ubsLng = Number(ubs.lng);
+      const distance = haversineDistance(searchCoords.lat, searchCoords.lng, ubsLat, ubsLng);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestUbs = ubs;
+      }
+    }
+
+    res.json({
+      ubs: {
+        id: Number(closestUbs.id),
+        name: closestUbs.name,
+        type: closestUbs.type,
+        bairro: closestUbs.bairro,
+        lat: Number(closestUbs.lat),
+        lng: Number(closestUbs.lng)
+      },
+      distanceKm: parseFloat(minDistance.toFixed(2))
+    });
+  } catch (error) {
+    console.error('Erro ao calcular UBS mais próxima:', error);
+    res.status(500).json({ error: 'Erro interno ao calcular UBS mais próxima.' });
+  }
+});
+
 // GET /units/:id - Obter uma unidade específica
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
@@ -672,6 +790,28 @@ router.post('/triage/log', async (req, res) => {
   } catch (error) {
     console.error('Erro ao registrar triagem:', error);
     res.status(500).json({ error: 'Erro interno ao registrar log de triagem.' });
+  }
+});
+
+// POST /units/:id/access - Registrar acesso à unidade de saúde (Público)
+router.post('/:id/access', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const unit = await prisma.unidades.findUnique({
+      where: { id: BigInt(id) }
+    });
+    if (!unit) {
+      return res.status(404).json({ error: 'Unidade não encontrada.' });
+    }
+    await prisma.acessosUnidade.create({
+      data: {
+        unit_id: BigInt(id)
+      }
+    });
+    res.status(201).json({ message: 'Acesso registrado com sucesso.' });
+  } catch (error) {
+    console.error('Erro ao registrar acesso:', error);
+    res.status(500).json({ error: 'Erro interno ao registrar acesso.' });
   }
 });
 

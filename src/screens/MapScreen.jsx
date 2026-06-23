@@ -29,15 +29,25 @@ const MapScreen = ({ units, setSelectedUnit, setView }) => {
   const toggleOpen24h = () => setMapFilters(prev => ({ ...prev, open24h: !prev.open24h }));
 
   useEffect(() => {
+    const normalizeText = (text) => {
+      if (!text) return '';
+      return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+    };
+
+    const normSearch = normalizeText(mapFilters.searchTerm);
+
     const results = units.filter(u => {
       const matchesType = mapFilters.types.length === 0 || mapFilters.types.includes(u.type);
       const matchesUrgency = !mapFilters.urgency || u.urgency;
       const matches24h = !mapFilters.open24h || u.open24h;
       
-      const searchLower = mapFilters.searchTerm.toLowerCase();
-      const name = (u.name || '').toLowerCase();
-      const bairro = (u.bairro || '').toLowerCase();
-      const matchesSearch = name.includes(searchLower) || bairro.includes(searchLower);
+      const normName = normalizeText(u.name);
+      const normBairro = normalizeText(u.bairro);
+      const matchesSearch = normName.includes(normSearch) || normBairro.includes(normSearch);
       
       return matchesType && matchesUrgency && matches24h && matchesSearch;
     });
