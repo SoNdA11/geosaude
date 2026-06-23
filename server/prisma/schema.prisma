@@ -28,6 +28,8 @@ model Unidades {
   profiles   Profiles[]
   history    History[]
   doctors    Doctors[]
+  avaliacoes Avaliacao[]
+  acessos    AcessosUnidade[]
 
   @@map("unidades")
 }
@@ -42,6 +44,7 @@ model Services {
   hours       String?
   unit        Unidades @relation(fields: [unit_id], references: [id], onDelete: Cascade)
   doctor      Doctors? @relation(fields: [doctor_id], references: [id], onDelete: SetNull)
+  avaliacoes  Avaliacao[]
 
   @@map("services")
 }
@@ -65,9 +68,10 @@ model Profiles {
   password   String
   role       String
   unit_id    BigInt?
-  created_at DateTime  @default(now()) @db.Timestamptz
-  unit       Unidades? @relation(fields: [unit_id], references: [id], onDelete: SetNull)
-  history    History[]
+  created_at  DateTime  @default(now()) @db.Timestamptz
+  last_access DateTime? @db.Timestamptz
+  unit        Unidades? @relation(fields: [unit_id], references: [id], onDelete: SetNull)
+  history     History[]
 
   @@map("profiles")
 }
@@ -98,4 +102,44 @@ model History {
   unit       Unidades? @relation(fields: [unit_id], references: [id], onDelete: SetNull)
 
   @@map("history")
+}
+
+model DocumentoInformativo {
+  id                     String    @id @default(uuid()) @db.Uuid
+  titulo                 String
+  descricao              String
+  caminho_arquivo        String
+  formato_extensao       String
+  tamanho_bytes          BigInt
+  categoria              String
+  orgao_emissor          String
+  contador_downloads     Int       @default(0)
+  contador_visualizacoes Int       @default(0)
+  data_publicacao        DateTime? @db.Timestamptz
+  status                 String    @default("Rascunho") // "Rascunho" ou "Publicado"
+
+  @@map("documento_informativo")
+}
+
+model Avaliacao {
+  id               BigInt    @id @default(autoincrement())
+  nota             Int
+  comentario       String?
+  lido_pelo_gestor Boolean   @default(false)
+  created_at       DateTime  @default(now()) @db.Timestamptz
+  service_id       BigInt?
+  unit_id          BigInt?
+  service          Services? @relation(fields: [service_id], references: [id], onDelete: SetNull)
+  unit             Unidades? @relation(fields: [unit_id], references: [id], onDelete: SetNull)
+
+  @@map("avaliacao")
+}
+
+model AcessosUnidade {
+  id        BigInt   @id @default(autoincrement())
+  unit_id   BigInt
+  timestamp DateTime @default(now()) @db.Timestamptz
+  unit      Unidades @relation(fields: [unit_id], references: [id], onDelete: Cascade)
+
+  @@map("acessos_unidade")
 }
