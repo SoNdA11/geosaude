@@ -31,6 +31,7 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
           mapTypeControl: false,
           fullscreenControl: false,
           styles: poiStyle, 
+          mapId: "DEMO_MAP_ID",
       });
       setMap(newMap);
     };
@@ -60,7 +61,7 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
 
       // Se for a primeira inicialização do script, injeta-o no document head
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=initMap`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=initMap&loading=async&libraries=marker`;
       script.async = true;
       script.defer = true;
       window.initMap = initMap;
@@ -89,16 +90,6 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
       else if (unit.type === 'UPA') pinColor = "#F97316";
       else if (unit.urgency) pinColor = "#EF4444";
       
-      const pinSvg = {
-        path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
-        fillColor: pinColor,
-        fillOpacity: 1,
-        strokeWeight: 1.5,
-        strokeColor: "#FFFFFF",
-        scale: 2.2, 
-        anchor: new window.google.maps.Point(12, 22),
-      };
-
       // Conversão defensiva para Number para evitar erros de setPosition
       const latVal = unit.lat !== undefined ? Number(unit.lat) : NaN;
       const lngVal = unit.lng !== undefined ? Number(unit.lng) : NaN;
@@ -108,13 +99,40 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
         return null;
       }
 
-      const marker = new window.google.maps.Marker({
-        position: { lat: latVal, lng: lngVal },
-        map,
-        title: unit.name,
-        icon: pinSvg,
-        animation: window.google.maps.Animation.DROP,
-      });
+      let marker;
+      if (window.google.maps.marker && window.google.maps.marker.AdvancedMarkerElement) {
+        const pinElement = new window.google.maps.marker.PinElement({
+          background: pinColor,
+          borderColor: "#FFFFFF",
+          glyphColor: "#FFFFFF",
+          scale: 1.0,
+        });
+
+        marker = new window.google.maps.marker.AdvancedMarkerElement({
+          position: { lat: latVal, lng: lngVal },
+          map,
+          title: unit.name,
+          content: pinElement.element,
+        });
+      } else {
+        const pinSvg = {
+          path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+          fillColor: pinColor,
+          fillOpacity: 1,
+          strokeWeight: 1.5,
+          strokeColor: "#FFFFFF",
+          scale: 2.2, 
+          anchor: new window.google.maps.Point(12, 22),
+        };
+
+        marker = new window.google.maps.Marker({
+          position: { lat: latVal, lng: lngVal },
+          map,
+          title: unit.name,
+          icon: pinSvg,
+          animation: window.google.maps.Animation.DROP,
+        });
+      }
       
       marker.addListener("click", () => onMarkerClick(unit));
       return marker;
@@ -123,14 +141,23 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
     setMarkers(newMarkers);
     
     if (newMarkers.length > 0) {
+      if (newMarkers.length === 1) {
+        const singleUnit = filteredUnits[0];
+        const latVal = Number(singleUnit.lat);
+        const lngVal = Number(singleUnit.lng);
+        map.setCenter({ lat: latVal, lng: lngVal });
+        map.setZoom(16);
+      } else {
         const bounds = new window.google.maps.LatLngBounds();
-        newMarkers.forEach(marker => bounds.extend(marker.getPosition()));
-        map.fitBounds(bounds, 50); 
-        
-        const listener = window.google.maps.event.addListener(map, "idle", () => { 
-          if (map.getZoom() > 16) map.setZoom(16); 
-          window.google.maps.event.removeListener(listener); 
+        filteredUnits.forEach(unit => {
+          const latVal = Number(unit.lat);
+          const lngVal = Number(unit.lng);
+          if (!isNaN(latVal) && !isNaN(lngVal)) {
+            bounds.extend({ lat: latVal, lng: lngVal });
+          }
         });
+        map.fitBounds(bounds, 50); 
+      }
     }
 
   }, [map, units, filters]);
