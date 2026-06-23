@@ -4,6 +4,9 @@ import authRoutes from './routes/auth.js';
 import unitRoutes from './routes/units.js';
 import historyRoutes from './routes/history.js';
 import profileRoutes from './routes/profiles.js';
+import documentRoutes from './routes/documents.js';
+import reviewRoutes from './routes/reviews.js';
+import dashboardRoutes from './routes/dashboard.js';
 import { logError } from './utils/logger.js';
 
 const app = express();
@@ -11,6 +14,7 @@ const app = express();
 // Configurações Globais
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 // Rota de Health Check
 app.get('/health', (req, res) => {
@@ -22,6 +26,9 @@ app.use('/auth', authRoutes);
 app.use('/units', unitRoutes);
 app.use('/history', historyRoutes);
 app.use('/profiles', profileRoutes);
+app.use('/documents', documentRoutes);
+app.use('/reviews', reviewRoutes);
+app.use('/dashboard', dashboardRoutes);
 
 // Tratamento de Rotas Não Encontradas
 app.use((req, res, next) => {
