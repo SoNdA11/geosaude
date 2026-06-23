@@ -76,6 +76,25 @@ const TriageScreen = ({ setView, setSelectedUnit, units = [] }) => {
       const emergencyResult = processTriage(updatedAnswers);
       setResult(emergencyResult);
       setStep(5); 
+
+      // Localiza a primeira unidade correspondente ao tipo sugerido para associar no log
+      const recommendedUnit = units.find(u => u.type === emergencyResult.unitType);
+
+      // Salva o registro no histórico de forma assíncrona
+      api.createTriageLog({
+        action: `Triagem Inteligente: Classificação ${emergencyResult.title}`,
+        unit_id: recommendedUnit ? recommendedUnit.id : null,
+        details: {
+          answers: updatedAnswers,
+          result: {
+            title: emergencyResult.title,
+            subtitle: emergencyResult.subtitle,
+            color: emergencyResult.color,
+            unitType: emergencyResult.unitType
+          }
+        }
+      }).catch(err => console.error('Falha ao salvar log de triagem:', err));
+
       return;
     }
 
