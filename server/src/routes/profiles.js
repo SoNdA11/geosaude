@@ -32,7 +32,8 @@ router.get('/', async (req, res) => {
       email: profile.email,
       role: profile.role,
       unitId: profile.unit_id ? Number(profile.unit_id) : null,
-      unitName: profile.unit ? profile.unit.name : 'Nenhuma'
+      unitName: profile.unit ? profile.unit.name : 'Nenhuma',
+      lastAccess: profile.last_access ? profile.last_access.toISOString() : null
     }));
 
     res.json(formatted);
@@ -74,7 +75,8 @@ router.post('/', async (req, res) => {
         user_id: BigInt(req.user.id),
         action: `Criou novo administrador de unidade: ${name}`,
         table_name: 'profiles',
-        record_id: profile.id
+        record_id: profile.id,
+        unit_id: BigInt(unitId)
       }
     });
 
@@ -121,7 +123,8 @@ router.put('/:id', async (req, res) => {
         user_id: BigInt(req.user.id),
         action: `Atualizou dados do administrador: ${updated.name}`,
         table_name: 'profiles',
-        record_id: updated.id
+        record_id: updated.id,
+        unit_id: BigInt(unitId)
       }
     });
 
@@ -168,7 +171,8 @@ router.put('/:id/reset-password', async (req, res) => {
         user_id: BigInt(req.user.id),
         action: `Redefiniu a senha do administrador: ${existing.name}`,
         table_name: 'profiles',
-        record_id: BigInt(id)
+        record_id: BigInt(id),
+        unit_id: existing.unit_id
       }
     });
 
@@ -197,7 +201,8 @@ router.delete('/:id', async (req, res) => {
         user_id: BigInt(req.user.id),
         action: `Removeu o administrador de unidade: ${existing.name}`,
         table_name: 'profiles',
-        record_id: BigInt(id)
+        record_id: BigInt(id),
+        unit_id: existing.unit_id
       }
     });
 

@@ -87,6 +87,7 @@ router.post('/login', async (req, res) => {
           action: `Tentativa de login mal-sucedida: Senha incorreta (${email})`,
           table_name: 'profiles',
           record_id: user.id,
+          unit_id: user.unit_id,
           details: { email, reason: 'Senha incorreta' }
         }
       });
@@ -100,7 +101,12 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Registrar login bem-sucedido
+    // Registrar login bem-sucedido e atualizar last_access
+    await prisma.profiles.update({
+      where: { id: user.id },
+      data: { last_access: new Date() }
+    });
+
     await prisma.history.create({
       data: {
         user_id: user.id,

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, MapPin, Lock } from 'lucide-react';
+import { LogOut, MapPin, Lock, LayoutDashboard } from 'lucide-react';
 import { api } from './utils/api';
+import { setToastCallback } from './utils/toast';
+import ToastContainer from './components/ToastContainer';
 
 // Importação das Telas
 import HomeScreen from './screens/HomeScreen';
@@ -11,6 +13,8 @@ import AdminUnitScreen from './screens/Admin/AdminUnitScreen';
 import AdminSystemScreen from './screens/Admin/AdminSystemScreen';
 import TriageScreen from './screens/TriageScreen';
 import LoginScreen from './screens/LoginScreen';
+import DocumentsPortalScreen from './screens/DocumentsPortalScreen';
+import AboutScreen from './screens/AboutScreen';
 
 export default function App() {
   const [view, setView] = useState('home');
@@ -18,6 +22,8 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [units, setUnits] = useState([]);
+  const [toasts, setToasts] = useState([]);
+  const [filteredUnits, setFilteredUnits] = useState(null);
 
   const refreshUnits = async () => {
     try {
@@ -38,6 +44,17 @@ export default function App() {
     refreshUnits();
   }, []);
 
+  useEffect(() => {
+    setToastCallback((newToast) => {
+      const id = Date.now() + Math.random();
+      setToasts((prev) => [...prev, { ...newToast, id }]);
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, newToast.duration || 3000);
+    });
+    return () => setToastCallback(null);
+  }, []);
+
   // Guarda de Rotas de Administração
   useEffect(() => {
     const securedViews = ['admin_unit', 'admin_system'];
@@ -49,6 +66,50 @@ export default function App() {
   const navigateTo = (newView) => {
     setPreviousView(view);
     setView(newView);
+    if (newView !== 'map' && newView !== 'details') {
+      setFilteredUnits(null);
+    }
+  };
+
+  const handleSearchUbs = async (query) => {
+    if (!query || !query.trim()) return { success: false };
+
+    const normalizeText = (text) => {
+      if (!text) return '';
+      return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+    };
+
+    const normQuery = normalizeText(query);
+
+    // Procurar localmente por unidades que tenham o bairro, CEP ou nome batendo com o digitado
+    const matches = units.filter(unit => {
+      const matchBairro = unit.bairro && normalizeText(unit.bairro).includes(normQuery);
+      const matchCep = unit.cep && unit.cep.replace(/\D/g, '').includes(normQuery.replace(/\D/g, ''));
+      const matchName = unit.name && normalizeText(unit.name).includes(normQuery);
+      return matchBairro || matchCep || matchName;
+    });
+
+    if (matches.length > 0) {
+      setFilteredUnits(matches);
+      navigateTo('map');
+      return { success: true };
+    }
+
+    try {
+      const res = await api.getClosestUbs(query);
+      return {
+        success: false,
+        closest: res.ubs,
+        distanceKm: res.distanceKm
+      };
+    } catch (err) {
+      console.error('Erro ao buscar UBS mais próxima:', err);
+      return { success: false };
+    }
   };
 
   const handleLogout = () => {
@@ -79,7 +140,19 @@ export default function App() {
 
           {user ? (
             <div className="flex items-center gap-4 pl-6 border-l border-gray-100">
-              <div className="hidden md:flex flex-col items-end">
+              <button
+                onClick={() => navigateTo(user.role === 'system_admin' ? 'admin_system' : 'admin_unit')}
+                className="text-sm font-semibold text-gray-600 hover:text-emerald-700 flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-emerald-50/50 transition-all active:scale-95 group"
+                title="Acessar Painel de Controle"
+              >
+                <LayoutDashboard size={16} className="text-gray-400 group-hover:text-emerald-500 transition-colors" />
+                <span className="hidden sm:inline">Painel</span>
+              </button>
+              <div 
+                className="hidden md:flex flex-col items-end cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigateTo(user.role === 'system_admin' ? 'admin_system' : 'admin_unit')}
+                title="Acessar Painel"
+              >
                 <span className="text-sm font-semibold text-gray-700 leading-tight">{user.name}</span>
                 <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wide">
                   {user.role === 'system_admin' ? 'Gestor do Sistema' : 'Gestor de Unidade'}
@@ -113,11 +186,11 @@ export default function App() {
       {view !== 'admin_unit' && view !== 'admin_system' && renderNavbar()}
 
       <div className="animate-fade-in">
-        {view === 'home' && <HomeScreen setView={navigateTo} />}
+        {view === 'home' && <HomeScreen setView={navigateTo} onSearchUbs={handleSearchUbs} />}
         
         {view === 'map' && (
           <MapScreen 
-            units={units} 
+            units={filteredUnits || units} 
             setSelectedUnit={setSelectedUnit} 
             setView={navigateTo} 
           />
@@ -145,6 +218,18 @@ export default function App() {
             setView={navigateTo} 
             setSelectedUnit={setSelectedUnit}
             units={units}
+          />
+        )}
+
+        {view === 'documents_portal' && (
+          <DocumentsPortalScreen 
+            setView={navigateTo} 
+          />
+        )}
+
+        {view === 'about_project' && (
+          <AboutScreen 
+            setView={navigateTo} 
           />
         )}
 
@@ -191,6 +276,7 @@ export default function App() {
           to { opacity: 1; transform: translateY(0) scale(1); } 
         }
       `}</style>
+      <ToastContainer toasts={toasts} onClose={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
     </div>
   );
 }
