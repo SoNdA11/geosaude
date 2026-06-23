@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Phone, Clock, Users, FileText, Map as MapIcon, ArrowLeft, Star, Activity, Calendar, ChevronRight } from 'lucide-react';
 import Modal from '../components/Utils/Modal';
+import { toast } from '../utils/toast';
 
 const DetailsScreen = ({ selectedUnit, setView, user, previousView }) => {
   const [activeNews, setActiveNews] = useState(null);
@@ -8,6 +9,18 @@ const DetailsScreen = ({ selectedUnit, setView, user, previousView }) => {
   const [evalModalOpen, setEvalModalOpen] = useState(false);
   const [specialtyModalOpen, setSpecialtyModalOpen] = useState(false);
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
+  
+  const [nota, setNota] = useState(0);
+  const [comentario, setComentario] = useState('');
+  const [submittingEval, setSubmittingEval] = useState(false);
+
+  useEffect(() => {
+    if (selectedUnit && selectedUnit.id) {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/units/${selectedUnit.id}/access`, {
+        method: 'POST'
+      }).catch(err => console.error('Erro ao registrar acesso:', err));
+    }
+  }, [selectedUnit]);
 
   if (!selectedUnit) return null;
 
@@ -239,16 +252,102 @@ const DetailsScreen = ({ selectedUnit, setView, user, previousView }) => {
 
       {evalModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[60]">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-96 animate-fade-in scale-100">
-            <h3 className="font-bold text-lg mb-1 text-gray-900">Avaliar Serviço</h3>
-            <p className="text-xs text-gray-500 mb-4">Sua opinião ajuda a melhorar o atendimento.</p>
-            
-            <input className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl mb-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Título (ex: Ótimo atendimento)" />
-            <textarea className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl mb-4 h-24 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none" placeholder="Conte sua experiência..." />
-            
-            <div className="flex gap-3">
-              <button onClick={() => setEvalModalOpen(false)} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
-              <button onClick={() => { setEvalModalOpen(false); }} className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors">Enviar</button>
+          <div className="bg-white p-6 rounded-2xl shadow-2xl w-96 animate-fade-in scale-100 space-y-4">
+            <div>
+              <h3 className="font-bold text-lg text-gray-900">Avaliar Serviço</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Deixe seu feedback sobre: <span className="font-semibold text-gray-700">{activeService?.name}</span>
+              </p>
+            </div>
+
+            {/* Seleção de Estrelas (0 a 5) */}
+            <div className="flex gap-2 justify-center py-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setNota(star)}
+                  className="transition-transform active:scale-90"
+                >
+                  <Star
+                    size={32}
+                    className={`transition-colors duration-200 ${
+                      star <= nota ? 'fill-amber-400 text-amber-400' : 'text-gray-300'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-400 uppercase">Comentário (Opcional)</label>
+              <textarea
+                rows={3}
+                placeholder="Conte-nos como foi seu atendimento (elogios, observações ou reclamações)..."
+                value={comentario}
+                onChange={(e) => setComentario(e.target.value)}
+                disabled={submittingEval}
+                className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl text-sm outline-none focus:border-emerald-300 focus:bg-white transition-all resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEvalModalOpen(false);
+                  setNota(0);
+                  setComentario('');
+                }}
+                disabled={submittingEval}
+                className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (nota < 1 || nota > 5) {
+                    toast.warning('Por favor, selecione uma nota de 1 a 5 estrelas.');
+                    return;
+                  }
+                  try {
+                    setSubmittingEval(true);
+                    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+                    const response = await fetch(`${baseUrl}/reviews`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        nota,
+                        comentario: comentario.trim(),
+                        service_id: activeService.id,
+                        unit_id: selectedUnit.id
+                      })
+                    });
+
+                    if (response.ok) {
+                      toast.success('Avaliação enviada com sucesso! Obrigado pelo seu feedback.');
+                      setEvalModalOpen(false);
+                      setActiveService(null);
+                      setNota(0);
+                      setComentario('');
+                    } else {
+                      const data = await response.json().catch(() => ({}));
+                      throw new Error(data.error || 'Erro ao registrar avaliação.');
+                    }
+                  } catch (err) {
+                    toast.error(err.message || 'Erro ao enviar avaliação.');
+                  } finally {
+                    setSubmittingEval(false);
+                  }
+                }}
+                disabled={submittingEval}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-medium text-sm transition-colors shadow-lg shadow-emerald-200 flex items-center justify-center gap-2"
+              >
+                {submittingEval ? 'Enviando...' : 'Enviar'}
+              </button>
             </div>
           </div>
         </div>
