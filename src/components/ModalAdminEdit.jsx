@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ModalWrapper from './ModalWrapper';
+import { toast } from '../utils/toast';
 
 const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave, units = [] }) => {
     const [formData, setFormData] = useState({
@@ -8,6 +9,10 @@ const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave, units = [] }) => {
         unitId: '',
         password: '',
     });
+
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const dropdownRef = useRef(null);
 
     useEffect(() => {
         if (adminData) {
@@ -25,7 +30,19 @@ const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave, units = [] }) => {
                 password: '',
             });
         }
+        setIsDropdownOpen(false);
+        setSearchQuery('');
     }, [adminData, units, isOpen]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -36,7 +53,7 @@ const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave, units = [] }) => {
         e.preventDefault();
         
         if (!formData.name.trim() || !formData.email.trim() || !formData.unitId || (!adminData && !formData.password.trim())) {
-            alert("Por favor, preencha todos os campos obrigatórios (nome, email, senha e unidade vinculada).");
+            toast.warning("Por favor, preencha todos os campos obrigatórios (nome, email, senha e unidade vinculada).");
             return;
         }
 
@@ -54,7 +71,7 @@ const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave, units = [] }) => {
     };
 
     return (
-        <ModalWrapper isOpen={isOpen} onClose={onClose} title={adminData ? `Editar Admin: ${adminData.name}` : 'Adicionar Administrador'} size="md">
+        <ModalWrapper isOpen={isOpen} onClose={onClose} title={adminData ? `Editar Gestor: ${adminData.name}` : 'Adicionar Gestor'} size="md">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nome</label>
@@ -94,21 +111,66 @@ const ModalAdminEdit = ({ isOpen, onClose, adminData, onSave, units = [] }) => {
                         />
                     </div>
                 )}
-                <div>
-                    <label htmlFor="unitId" className="block text-sm font-medium text-gray-700">Unidade Vinculada</label>
-                    <select
-                        name="unitId"
-                        id="unitId"
-                        value={formData.unitId}
-                        onChange={handleChange}
-                        required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border bg-white"
+                <div className="relative font-sans text-left" ref={dropdownRef}>
+                    <label className="block text-sm font-medium text-gray-700">Unidade Vinculada</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="mt-1 w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer text-left flex justify-between items-center min-h-[38px]"
                     >
-                        <option value="" disabled>Selecione uma unidade...</option>
-                        {units.map(unit => (
-                            <option key={unit.id} value={unit.id}>{unit.name} ({unit.type})</option>
-                        ))}
-                    </select>
+                      <span className="truncate text-gray-700">
+                        {formData.unitId 
+                          ? units.find(u => String(u.id) === String(formData.unitId))?.name || 'Unidade não encontrada' 
+                          : 'Selecione uma unidade...'}
+                      </span>
+                      <span className="text-[10px] text-gray-400">▼</span>
+                    </button>
+
+                    {isDropdownOpen && (
+                      <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg p-2 max-h-56 overflow-hidden">
+                        <input
+                          type="text"
+                          placeholder="Pesquisar unidade..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-250 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500 mb-2 font-medium"
+                        />
+                        <div className="max-h-40 overflow-y-auto space-y-1">
+                          {units
+                            .filter(u => 
+                              u.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(
+                                searchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                              )
+                            )
+                            .map(u => (
+                              <button
+                                key={u.id}
+                                type="button"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, unitId: String(u.id) }));
+                                  setIsDropdownOpen(false);
+                                  setSearchQuery('');
+                                }}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-colors truncate ${
+                                  String(formData.unitId) === String(u.id) ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600'
+                                }`}
+                              >
+                                {u.name} ({u.type})
+                              </button>
+                            ))
+                          }
+                          {units.filter(u => 
+                            u.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(
+                              searchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                            )
+                          ).length === 0 && (
+                            <div className="text-xs text-gray-400 italic text-center py-2">
+                              Nenhuma unidade encontrada
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                 </div>
                 <div className="flex justify-end pt-4 border-t">
                     <button

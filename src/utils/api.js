@@ -113,7 +113,14 @@ export const api = {
   }),
 
   // Histórico de Logs
-  getHistory: () => apiFetch('/history'),
+  getHistory: (page = 1, limit = 10, unitId = null, actionType = null, startDate = null, endDate = null) => {
+    let url = `/history?page=${page}&limit=${limit}`;
+    if (unitId) url += `&unitId=${unitId}`;
+    if (actionType) url += `&actionType=${encodeURIComponent(actionType)}`;
+    if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+    return apiFetch(url);
+  },
   createHistory: (data) => apiFetch('/history', {
     method: 'POST',
     body: JSON.stringify(data)
@@ -135,5 +142,27 @@ export const api = {
   }),
   deleteDoctor: (id) => apiFetch(`/units/doctors/${id}`, {
     method: 'DELETE'
-  })
+  }),
+
+  // UBS mais próxima (Haversine)
+  getClosestUbs: (query) => apiFetch(`/units/closest?q=${encodeURIComponent(query)}`),
+
+  // Avaliações / Feedbacks de Serviços
+  getReviews: (status = null) => {
+    let url = '/reviews';
+    if (status) url += `?status=${status}`;
+    return apiFetch(url);
+  },
+  createReview: (data) => apiFetch('/reviews', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  readReview: (id) => apiFetch(`/reviews/${id}/read`, {
+    method: 'PUT'
+  }),
+
+  // Dashboard
+  getAdminDashboard: (severity = 'all') => apiFetch(`/dashboard/admin?severity=${encodeURIComponent(severity)}`),
+  getGestorDashboard: () => apiFetch('/dashboard/gestor')
 };
+

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ModalWrapper from './ModalWrapper';
+import { toast } from '../utils/toast';
 
 const UNIT_TYPES = ["UBS", "UPA", "Hospital"];
 
@@ -19,6 +20,25 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
         urgency: false,
         open24h: false
     });
+
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        setIsDropdownOpen(false);
+        setSearchQuery('');
+    }, [unitData, admins, isOpen]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         if (unitData) {
@@ -70,7 +90,7 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
         if (!formData.name || !formData.type || !formData.latitude || !formData.longitude || 
             !formData.bairro || !formData.rua || !formData.cep || !formData.phone || 
             !formData.hours || !formData.target) {
-            alert("Por favor, preencha todos os campos obrigatórios.");
+            toast.warning("Por favor, preencha todos os campos obrigatórios.");
             return;
         }
 
@@ -125,20 +145,79 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
                             ))}
                         </select>
                     </div>
-                    <div>
-                        <label htmlFor="adminId" className="block text-sm font-medium text-gray-700">Admin Responsável</label>
-                        <select
-                            name="adminId"
-                            id="adminId"
-                            value={formData.adminId}
-                            onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border bg-white"
+                    <div className="relative" ref={dropdownRef}>
+                        <label className="block text-sm font-medium text-gray-700">Gestor Responsável</label>
+                        <button
+                          type="button"
+                          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                          className="mt-1 w-full bg-white border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer text-left flex justify-between items-center min-h-[38px]"
                         >
-                            <option value="">Nenhum</option>
-                            {admins.map(admin => (
-                                <option key={admin.id} value={admin.id}>{admin.name} ({admin.email})</option>
-                            ))}
-                        </select>
+                          <span className="truncate text-gray-700">
+                            {formData.adminId 
+                              ? admins.find(a => String(a.id) === String(formData.adminId))?.name || 'Gestor não encontrado' 
+                              : 'Nenhum'}
+                          </span>
+                          <span className="text-[10px] text-gray-400">▼</span>
+                        </button>
+
+                        {isDropdownOpen && (
+                          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg p-2 max-h-56 overflow-hidden">
+                            <input
+                              type="text"
+                              placeholder="Pesquisar gestor..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="w-full bg-gray-50 border border-gray-250 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-emerald-500 mb-2 font-medium"
+                            />
+                            <div className="max-h-40 overflow-y-auto space-y-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, adminId: '' }));
+                                  setIsDropdownOpen(false);
+                                  setSearchQuery('');
+                                }}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-colors ${
+                                  !formData.adminId ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600'
+                                }`}
+                              >
+                                Nenhum
+                              </button>
+                              {admins
+                                .filter(admin => 
+                                  admin.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(
+                                    searchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                                  )
+                                )
+                                .map(admin => (
+                                  <button
+                                    key={admin.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setFormData(prev => ({ ...prev, adminId: String(admin.id) }));
+                                      setIsDropdownOpen(false);
+                                      setSearchQuery('');
+                                    }}
+                                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-colors truncate ${
+                                      String(formData.adminId) === String(admin.id) ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600'
+                                    }`}
+                                  >
+                                    {admin.name} ({admin.email})
+                                  </button>
+                                ))
+                              }
+                              {admins.filter(admin => 
+                                admin.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(
+                                  searchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                                )
+                              ).length === 0 && (
+                                <div className="text-xs text-gray-400 italic text-center py-2">
+                                  Nenhum gestor encontrado
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                     </div>
                 </div>
 
