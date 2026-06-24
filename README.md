@@ -11,11 +11,14 @@ O **GeoSaúde Mossoró** reúne **usabilidade**, **acessibilidade** e **dados at
 
 ### Principais Funcionalidades
 
-* **Mapa Interativo:** visualize UBSs, UPAs e Hospitais com filtros inteligentes.
-* **Busca Avançada:** encontre unidades por especialidade, bairro, tipo de serviço ou ente federativo.
-* **Detalhes Completos:** endereço, contato, equipe médica e horários de atendimento.
-* **Triagem Online (Em breve):** sistema inteligente para recomendação de atendimento.
-* **Painel Administrativo:** área segura para atualização dos dados das unidades.
+* **Mapa Interativo:** visualização de UBSs, UPAs e Hospitais no mapa com remoção de pontos de interesse (POIs) nativos para melhor clareza.
+* **Busca Avançada & Inteligente:** pesquisa rápida na página inicial por CEP e filtros avançados por especialidade, bairro, tipo de serviço ou esfera administrativa.
+* **Detalhes Completos da Unidade:** informações completas incluindo endereço estruturado, contatos, quadro clínico de médicos, notícias específicas e horários de funcionamento.
+* **Triagem Clínica Online:** sistema inteligente e interativo baseado em perguntas para recomendar o canal ideal de atendimento (Auto-cuidado, UBS, UPA ou Hospital) de acordo com o grau de urgência.
+* **Portal de Documentos Informativos:** área de download de documentos e cartilhas oficiais disponibilizadas pelas secretarias de saúde.
+* **Painel de Controle Geral (Admin):** controle centralizado de administradores, unidades de saúde, relatórios de logs de auditoria e métricas estatísticas globais com gráficos de acessos e triagens.
+* **Painel do Gestor de Unidade:** ferramentas de gestão específicas para atualizar dados da própria unidade, cadastrar médicos, serviços, notícias locais e monitorar avaliações.
+* **Avaliações de Serviços:** sistema de feedback do cidadão para avaliar os serviços prestados em cada unidade de saúde.
 
 ## Tecnologias Utilizadas
 
