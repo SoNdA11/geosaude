@@ -14,7 +14,10 @@ const GoogleMap = ({ units, onMarkerClick, filters }) => {
       const poiStyle = [
         {
           featureType: "poi", 
-          elementType: "labels", 
+          stylers: [{ visibility: "off" }]
+        },
+        {
+          featureType: "transit",
           stylers: [{ visibility: "off" }]
         },
         {
