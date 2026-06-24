@@ -13,7 +13,11 @@ router.get('/', requireAuth, async (req, res) => {
   const startDate = req.query.startDate ? String(req.query.startDate) : null;
   const endDate = req.query.endDate ? String(req.query.endDate) : null;
 
-  const where = {};
+  const where = {
+    NOT: {
+      table_name: 'triage'
+    }
+  };
   if (unitId) {
     where.unit_id = BigInt(unitId);
   }

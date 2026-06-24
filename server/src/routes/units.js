@@ -213,7 +213,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /units - Criar unidade (Apenas system_admin)
 router.post('/', requireAuth, requireRole(['system_admin']), async (req, res) => {
-  const { name, type, bairro, cep, rua, lat, lng, phone, hours, target, urgency, open24h } = req.body;
+  const { name, type, bairro, cep, rua, lat, lng, phone, hours, target, urgency, open24h, federativeEntity } = req.body;
 
   if (!name || !type || !bairro || !cep || !rua || lat === undefined || lng === undefined || !phone || !hours || !target) {
     return res.status(400).json({ error: 'Todos os campos cadastrais da unidade (nome, tipo, bairro, cep, rua, lat, lng, telefone, horário, público alvo) são obrigatórios.' });
@@ -233,7 +233,8 @@ router.post('/', requireAuth, requireRole(['system_admin']), async (req, res) =>
         hours,
         target,
         urgency: !!urgency,
-        open24h: !!open24h
+        open24h: !!open24h,
+        federativeEntity: federativeEntity || 'Municipal'
       }
     });
 
@@ -258,7 +259,7 @@ router.post('/', requireAuth, requireRole(['system_admin']), async (req, res) =>
 // PUT /units/:id - Atualizar unidade (system_admin ou unit_admin da própria unidade)
 router.put('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { name, type, bairro, cep, rua, lat, lng, phone, hours, target, urgency, open24h } = req.body;
+  const { name, type, bairro, cep, rua, lat, lng, phone, hours, target, urgency, open24h, federativeEntity } = req.body;
 
   // Controle de permissão: unit_admin só edita sua própria unidade
   if (req.user.role !== 'system_admin' && req.user.unitId !== Number(id)) {
@@ -289,7 +290,8 @@ router.put('/:id', requireAuth, async (req, res) => {
         hours: hours !== undefined ? hours : existing.hours,
         target: target !== undefined ? target : existing.target,
         urgency: urgency !== undefined ? !!urgency : existing.urgency,
-        open24h: open24h !== undefined ? !!open24h : existing.open24h
+        open24h: open24h !== undefined ? !!open24h : existing.open24h,
+        federativeEntity: federativeEntity !== undefined ? federativeEntity : existing.federativeEntity
       }
     });
 
