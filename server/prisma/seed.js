@@ -4,25 +4,15 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Iniciando o seeding do banco de dados...');
-
-  // Limpando tabelas existentes para garantir um seed limpo
-  await prisma.history.deleteMany();
-  await prisma.profiles.deleteMany();
-  await prisma.news.deleteMany();
-  await prisma.services.deleteMany();
-  await prisma.doctors.deleteMany();
-  await prisma.unidades.deleteMany();
-
-  console.log('Tabelas limpas com sucesso.');
+  console.log('Iniciando o seeding do banco de dados (modo não destrutivo)...');
 
   // Criptografando senhas mockadas
   const hashedPasswordAdmin = await bcrypt.hash('@admin@', 10);
   const hashedPasswordMarcos = await bcrypt.hash('@marcosnunes@', 10);
 
-  // 1. Criar Unidades de Saúde
-  const ubsCentro = await prisma.unidades.create({
-    data: {
+  // 1. Criar Unidades de Saúde (se não existirem)
+  const unitsToSeed = [
+    {
       id: 1n,
       name: "UBS Centro Clínico - Dr. José Leão",
       type: "UBS",
@@ -36,11 +26,8 @@ async function main() {
       target: "Moradores do Belo Horizonte",
       urgency: false,
       open24h: false,
-    }
-  });
-
-  const upaAlto = await prisma.unidades.create({
-    data: {
+    },
+    {
       id: 2n,
       name: "UPA do Alto de São Manoel",
       type: "UPA",
@@ -54,11 +41,8 @@ async function main() {
       target: "Público Geral (Urgência)",
       urgency: true,
       open24h: true,
-    }
-  });
-
-  const hospitalTarcisio = await prisma.unidades.create({
-    data: {
+    },
+    {
       id: 3n,
       name: "Hospital Regional Tarcísio Maia",
       type: "Hospital",
@@ -73,156 +57,180 @@ async function main() {
       urgency: true,
       open24h: true,
     }
-  });
+  ];
 
-  console.log('Unidades criadas.');
+  for (const unitData of unitsToSeed) {
+    const existing = await prisma.unidades.findUnique({ where: { id: unitData.id } });
+    if (!existing) {
+      await prisma.unidades.create({ data: unitData });
+      console.log(`Unidade '${unitData.name}' semeada.`);
+    }
+  }
 
   // 2. Criar Médicos
-  const drSilva = await prisma.doctors.create({
-    data: {
+  const doctorsToSeed = [
+    {
       id: 1n,
-      unit_id: ubsCentro.id,
+      unit_id: 1n,
       name: "Dr. Silva",
       specialty: "Clínica Geral",
       crm: "CRM-RN 1234"
-    }
-  });
-
-  const enfMaria = await prisma.doctors.create({
-    data: {
+    },
+    {
       id: 2n,
-      unit_id: ubsCentro.id,
+      unit_id: 1n,
       name: "Enf. Maria",
       specialty: "Enfermagem",
       crm: "COREN-RN 5678"
-    }
-  });
-
-  const tecJoao = await prisma.doctors.create({
-    data: {
+    },
+    {
       id: 3n,
-      unit_id: upaAlto.id,
+      unit_id: 2n,
       name: "Téc. João",
       specialty: "Radiologia",
       crm: "CRTR-RN 9012"
-    }
-  });
-
-  const drPedro = await prisma.doctors.create({
-    data: {
+    },
+    {
       id: 4n,
-      unit_id: hospitalTarcisio.id,
+      unit_id: 3n,
       name: "Dr. Pedro",
       specialty: "Cirurgia",
       crm: "CRM-RN 3456"
     }
-  });
+  ];
 
-  console.log('Médicos criados.');
+  for (const docData of doctorsToSeed) {
+    const existing = await prisma.doctors.findUnique({ where: { id: docData.id } });
+    if (!existing) {
+      await prisma.doctors.create({ data: docData });
+      console.log(`Médico '${docData.name}' semeado.`);
+    }
+  }
 
   // 3. Criar Serviços associados aos Médicos
-  await prisma.services.createMany({
-    data: [
-      {
-        unit_id: ubsCentro.id,
-        name: "Consulta Geral",
-        specialty: "Clínica Geral",
-        doctor_id: drSilva.id,
-        description: "Consulta de rotina.",
-        hours: "Seg-Sex 08:00-12:00"
-      },
-      {
-        unit_id: ubsCentro.id,
-        name: "Curativos",
-        specialty: "Enfermagem",
-        doctor_id: enfMaria.id,
-        description: "Troca de curativos.",
-        hours: "Seg-Sex 07:00-11:00"
-      },
-      {
-        unit_id: upaAlto.id,
-        name: "Raio-X",
-        specialty: "Radiologia",
-        doctor_id: tecJoao.id,
-        description: "Raio-X de emergência.",
-        hours: "24h"
-      },
-      {
-        unit_id: hospitalTarcisio.id,
-        name: "Cirurgia Geral",
-        specialty: "Cirurgia",
-        doctor_id: drPedro.id,
-        description: "Cirurgias de emergência.",
-        hours: "24h"
-      }
-    ]
-  });
+  const servicesToSeed = [
+    {
+      unit_id: 1n,
+      name: "Consulta Geral",
+      specialty: "Clínica Geral",
+      doctor_id: 1n,
+      description: "Consulta de rotina.",
+      hours: "Seg-Sex 08:00-12:00"
+    },
+    {
+      unit_id: 1n,
+      name: "Curativos",
+      specialty: "Enfermagem",
+      doctor_id: 2n,
+      description: "Troca de curativos.",
+      hours: "Seg-Sex 07:00-11:00"
+    },
+    {
+      unit_id: 2n,
+      name: "Raio-X",
+      specialty: "Radiologia",
+      doctor_id: 3n,
+      description: "Raio-X de emergência.",
+      hours: "24h"
+    },
+    {
+      unit_id: 3n,
+      name: "Cirurgia Geral",
+      specialty: "Cirurgia",
+      doctor_id: 4n,
+      description: "Cirurgias de emergência.",
+      hours: "24h"
+    }
+  ];
+
+  for (const srvData of servicesToSeed) {
+    const existing = await prisma.services.findFirst({
+      where: { unit_id: srvData.unit_id, name: srvData.name }
+    });
+    if (!existing) {
+      await prisma.services.create({ data: srvData });
+      console.log(`Serviço '${srvData.name}' semeado.`);
+    }
+  }
 
   // 4. Criar Notícias (com prazo de expiração no futuro, ex: +7 dias)
   const futDate = new Date();
   futDate.setDate(futDate.getDate() + 7);
 
-  await prisma.news.create({
-    data: {
-      unit_id: ubsCentro.id,
-      title: "Campanha de Vacinação",
-      date: "27/11/2025",
-      content: "Início da campanha contra a gripe para idosos.",
-      expires_at: futDate
-    }
+  const existingNews = await prisma.news.findFirst({
+    where: { unit_id: 1n, title: "Campanha de Vacinação" }
   });
+  if (!existingNews) {
+    await prisma.news.create({
+      data: {
+        unit_id: 1n,
+        title: "Campanha de Vacinação",
+        date: "27/11/2025",
+        content: "Início da campanha contra a gripe para idosos.",
+        expires_at: futDate
+      }
+    });
+    console.log("Notícia de vacinação semeada.");
+  }
 
-  console.log('Serviços, médicos e notícias iniciais inseridos.');
-
-  // 2. Criar Perfis (Usuários/Administradores)
-  const userAdmin = await prisma.profiles.create({
-    data: {
+  // 5. Criar Perfis (Usuários/Administradores)
+  const profilesToSeed = [
+    {
       id: 1n,
       email: "admin@admin.com",
       password: hashedPasswordAdmin,
       role: "system_admin",
       name: "Administrador Geral"
-    }
-  });
-
-  const userMarcos = await prisma.profiles.create({
-    data: {
+    },
+    {
       id: 2n,
       email: "MarcosNunes@gmail.com",
       password: hashedPasswordMarcos,
       role: "unit_admin",
       name: "Marcos Nunes",
-      unit_id: ubsCentro.id
+      unit_id: 1n
     }
-  });
+  ];
 
-  console.log('Perfis de usuários criados.');
+  for (const profData of profilesToSeed) {
+    const existing = await prisma.profiles.findUnique({ where: { id: profData.id } });
+    if (!existing) {
+      await prisma.profiles.create({ data: profData });
+      console.log(`Perfil '${profData.name}' semeado.`);
+    }
+  }
 
-  // 3. Criar Histórico de Logs
-  await prisma.history.createMany({
-    data: [
-      {
-        user_id: userMarcos.id,
-        action: "Editou horário da UBS Centro",
-        table_name: "unidades",
-        record_id: ubsCentro.id,
-        unit_id: ubsCentro.id,
-        timestamp: new Date("2025-11-20T10:00:00Z"),
-        details: { field: "hours", newValue: "07:00 - 17:00" }
-      },
-      {
-        user_id: userAdmin.id,
-        action: "Cadastrou nova UPA",
-        table_name: "unidades",
-        record_id: upaAlto.id,
-        unit_id: upaAlto.id,
-        timestamp: new Date("2025-07-08T14:30:00Z"),
-        details: { name: "UPA do Alto de São Manoel" }
-      }
-    ]
-  });
+  // 6. Criar Histórico de Logs
+  const historyToSeed = [
+    {
+      id: 1n,
+      user_id: 2n,
+      action: "Editou horário da UBS Centro",
+      table_name: "unidades",
+      record_id: 1n,
+      unit_id: 1n,
+      timestamp: new Date("2025-11-20T10:00:00Z"),
+      details: { field: "hours", newValue: "07:00 - 17:00" }
+    },
+    {
+      id: 2n,
+      user_id: 1n,
+      action: "Cadastrou nova UPA",
+      table_name: "unidades",
+      record_id: 2n,
+      unit_id: 2n,
+      timestamp: new Date("2025-07-08T14:30:00Z"),
+      details: { name: "UPA do Alto de São Manoel" }
+    }
+  ];
 
-  console.log('Histórico de auditoria semeado.');
+  for (const histData of historyToSeed) {
+    const existing = await prisma.history.findUnique({ where: { id: histData.id } });
+    if (!existing) {
+      await prisma.history.create({ data: histData });
+      console.log(`Log ID ${histData.id} semeado.`);
+    }
+  }
 
   // Sincronizar as sequências do PostgreSQL para evitar conflito de IDs únicos (P2002) no autoincrement
   console.log('Sincronizando sequences do banco de dados...');
