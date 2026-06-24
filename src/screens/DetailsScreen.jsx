@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Phone, Clock, Users, FileText, Map as MapIcon, ArrowLeft, Star, Activity, Calendar, ChevronRight } from 'lucide-react';
 import Modal from '../components/Utils/Modal';
 import { toast } from '../utils/toast';
@@ -14,8 +14,11 @@ const DetailsScreen = ({ selectedUnit, setView, user, previousView }) => {
   const [comentario, setComentario] = useState('');
   const [submittingEval, setSubmittingEval] = useState(false);
 
+  const loggedUnitId = useRef(null);
+
   useEffect(() => {
-    if (selectedUnit && selectedUnit.id) {
+    if (selectedUnit && selectedUnit.id && loggedUnitId.current !== selectedUnit.id) {
+      loggedUnitId.current = selectedUnit.id;
       fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/units/${selectedUnit.id}/access`, {
         method: 'POST'
       }).catch(err => console.error('Erro ao registrar acesso:', err));
