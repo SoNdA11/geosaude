@@ -11,7 +11,7 @@ const HomeScreen = ({ setView, onSearchUbs }) => {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      toast.warning('Digite um Bairro ou CEP para pesquisar.');
+      toast.warning('Digite um CEP para pesquisar.');
       return;
     }
     try {
@@ -59,7 +59,7 @@ const HomeScreen = ({ setView, onSearchUbs }) => {
             <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-2xl flex flex-col sm:flex-row gap-2 max-w-xl mb-10 shadow-lg mx-auto md:mx-0">
               <input
                 type="text"
-                placeholder="Digite seu Bairro ou CEP para achar sua UBS..."
+                placeholder="Digite seu CEP para achar sua UBS..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -240,7 +240,7 @@ const HomeScreen = ({ setView, onSearchUbs }) => {
               <h3 className="font-bold text-lg text-gray-800">UBS Não Encontrada</h3>
             </div>
             <p className="text-gray-600 text-sm">
-              Não encontramos nenhuma UBS cadastrada no Bairro/CEP <strong>"{searchQuery}"</strong>. Deseja visualizar a unidade mais próxima?
+              Não encontramos nenhuma UBS cadastrada no CEP <strong>"{searchQuery}"</strong>. Deseja visualizar a unidade mais próxima?
             </p>
             <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex flex-col gap-1">
               <span className="text-xs font-bold text-gray-400 uppercase">UBS Mais Próxima</span>

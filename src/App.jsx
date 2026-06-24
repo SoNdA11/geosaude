@@ -85,12 +85,11 @@ export default function App() {
 
     const normQuery = normalizeText(query);
 
-    // Procurar localmente por unidades que tenham o bairro, CEP ou nome batendo com o digitado
+    // Procurar localmente por unidades que tenham o CEP batendo com o digitado (ou correspondencia exata de nome para redirecionamento do modal)
     const matches = units.filter(unit => {
-      const matchBairro = unit.bairro && normalizeText(unit.bairro).includes(normQuery);
       const matchCep = unit.cep && unit.cep.replace(/\D/g, '').includes(normQuery.replace(/\D/g, ''));
-      const matchName = unit.name && normalizeText(unit.name).includes(normQuery);
-      return matchBairro || matchCep || matchName;
+      const matchNameExact = unit.name && normalizeText(unit.name) === normQuery;
+      return matchCep || matchNameExact;
     });
 
     if (matches.length > 0) {

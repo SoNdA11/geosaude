@@ -18,7 +18,8 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
         hours: '',
         target: '',
         urgency: false,
-        open24h: false
+        open24h: false,
+        federativeEntity: 'Municipal'
     });
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -55,7 +56,8 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
                 hours: unitData.hours || '',
                 target: unitData.target || '',
                 urgency: !!unitData.urgency,
-                open24h: !!unitData.open24h
+                open24h: !!unitData.open24h,
+                federativeEntity: unitData.federativeEntity || 'Municipal'
             });
         } else {
             setFormData({
@@ -71,7 +73,8 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
                 hours: '',
                 target: '',
                 urgency: false,
-                open24h: false
+                open24h: false,
+                federativeEntity: 'Municipal'
             });
         }
     }, [unitData, admins, isOpen]);
@@ -89,7 +92,7 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
 
         if (!formData.name || !formData.type || !formData.latitude || !formData.longitude || 
             !formData.bairro || !formData.rua || !formData.cep || !formData.phone || 
-            !formData.hours || !formData.target) {
+            !formData.hours || !formData.target || !formData.federativeEntity) {
             toast.warning("Por favor, preencha todos os campos obrigatórios.");
             return;
         }
@@ -107,6 +110,7 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
             target: formData.target,
             urgency: formData.urgency,
             open24h: formData.open24h,
+            federativeEntity: formData.federativeEntity,
             adminId: formData.adminId ? Number(formData.adminId) : null
         };
         onSave(preparedData);
@@ -219,6 +223,22 @@ const ModalUnitEdit = ({ isOpen, onClose, unitData, onSave, admins = [] }) => {
                           </div>
                         )}
                     </div>
+                </div>
+
+                <div>
+                    <label htmlFor="federativeEntity" className="block text-sm font-medium text-gray-700">Esfera Administrativa</label>
+                    <select
+                        name="federativeEntity"
+                        id="federativeEntity"
+                        value={formData.federativeEntity}
+                        onChange={handleChange}
+                        required
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm p-2 border bg-white"
+                    >
+                        <option value="Municipal">Municipal</option>
+                        <option value="Estadual">Estadual</option>
+                        <option value="Federal">Federal</option>
+                    </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
