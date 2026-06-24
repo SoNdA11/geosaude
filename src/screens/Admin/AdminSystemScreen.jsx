@@ -34,6 +34,7 @@ const AdminSystemScreen = ({ units, setSelectedUnit, setView, handleLogout, refr
 
   const [adminUsers, setAdminUsers] = useState([]);
   const [historyData, setHistoryData] = useState([]);
+  const [totalLogs, setTotalLogs] = useState(0);
   const [filterActionType, setFilterActionType] = useState('');
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
@@ -62,6 +63,7 @@ const AdminSystemScreen = ({ units, setSelectedUnit, setView, handleLogout, refr
       const res = await api.getHistory(page, ITEMS_PER_PAGE, unitId || null, actionType || null, startDate || null, endDate || null);
       setHistoryData(res.logs || []);
       setTotalPages(res.totalPages || 1);
+      setTotalLogs(res.total || 0);
     } catch (err) {
       console.error('Erro ao carregar log de atividades:', err);
     }
@@ -446,7 +448,7 @@ const AdminSystemScreen = ({ units, setSelectedUnit, setView, handleLogout, refr
               />
               <DashboardCard 
                 title="Registros de Histórico" 
-                count={historyData.length} 
+                count={totalLogs} 
                 icon={History} 
                 active={sysSection === 'history'}
                 onClick={() => setSysSection('history')}
