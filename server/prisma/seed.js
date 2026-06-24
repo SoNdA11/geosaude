@@ -26,6 +26,7 @@ async function main() {
       target: "Moradores do Belo Horizonte",
       urgency: false,
       open24h: false,
+      federativeEntity: "Municipal",
     },
     {
       id: 2n,
@@ -41,6 +42,7 @@ async function main() {
       target: "Público Geral (Urgência)",
       urgency: true,
       open24h: true,
+      federativeEntity: "Municipal",
     },
     {
       id: 3n,
@@ -56,6 +58,7 @@ async function main() {
       target: "Alta Complexidade",
       urgency: true,
       open24h: true,
+      federativeEntity: "Estadual",
     }
   ];
 
@@ -64,6 +67,12 @@ async function main() {
     if (!existing) {
       await prisma.unidades.create({ data: unitData });
       console.log(`Unidade '${unitData.name}' semeada.`);
+    } else {
+      await prisma.unidades.update({
+        where: { id: unitData.id },
+        data: { federativeEntity: unitData.federativeEntity }
+      });
+      console.log(`Unidade '${unitData.name}' atualizada com a esfera '${unitData.federativeEntity}'.`);
     }
   }
 
